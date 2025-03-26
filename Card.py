@@ -20,7 +20,7 @@ class Card:
         "H" : Suit.HEARTS,
         "D" : Suit.DIAMONDS
     }
-    __suitString = ["♠", "♣", "♥", "♦"]
+    __suitString = ["s", "c", "h", "d"]
 
     # Ranks for readability:
     __ranks = {
@@ -38,7 +38,7 @@ class Card:
         "Q" : 12, 
         "K" : 13
     }
-    __rankString = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+    __rankString = ["a", "2", "3", "4", "5", "6", "7", "8", "9", "10", "j", "q", "k"]
     def __init__(self, rank: int, suit: Suit):
         self.__rank = rank
         self.__suit = suit
@@ -62,6 +62,6 @@ class Card:
     
 
     def __str__(self):
-        return self.__rankString[self.rank] + " " + self.__suitString[self.suit.value]
+        return self.__rankString[self.rank] + "_" + self.__suitString[self.suit.value]
 
 
