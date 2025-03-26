@@ -8,10 +8,10 @@
 #      rx(socket)          -- Receives messa-ge or group of messages from socket
 
 
-#================================ LenAndPayload ===============================
+#================================ LenAndPayload ==============================#
 # Format that prepends an int defining the length of the message to the 
 # message itself. Supports variable length messages.
-#==============================================================================
+#=============================================================================#
 
 import pickle
 class LenAndPayload():
@@ -32,7 +32,7 @@ class LenAndPayload():
         is received on socket.
         """
         try:
-            data = self.__deserialize_one(sock)
+            data = self.__consume_msg(sock)
             return data
         except BlockingIOError:
             return None
@@ -44,7 +44,7 @@ class LenAndPayload():
         payload = pickle.dumps(data)
         return len(payload).to_bytes(self.headerLen, byteorder='big') + payload
 
-    def __deserialize_one(self, sock):
+    def __consume_msg(self, sock):
         """
         Consumes one message from socket by reading length then the message. 
         """
@@ -58,6 +58,9 @@ class LenAndPayload():
             if not chunk:
                 break
             rawPayload += chunk
+
+        if rawPayload == b'':
+            return None
 
         return pickle.loads(rawPayload)
     

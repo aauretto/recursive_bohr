@@ -14,20 +14,28 @@ class MyServer(BaseServer):
             case _ if msg == STOP_SERVER_MSG:
               self.stop()
               self.tx_message(client, "Stopped")
+              print("Stopped")
             case ("set", num):
               self.state = num
               self.tx_message(client, ("NewState", self.state))
+              print(f"State: {self.state}")
             case ("add", num):
               self.state += num
               self.tx_message(client, ("NewState", self.state))
+              print(f"State: {self.state}")
             case ("sub", num):
               self.state -= num
               self.tx_message(client, ("NewState", self.state))
+              print(f"State: {self.state}")
             case _:
               print(f"Unknown Message: {msg}")
 
+    def handle_connection(self, client):
+       print("Someones connecting")
+       return super().handle_connection(client)  
+
 def main():
-    s = MyServer('localhost', 9000)
+    s = MyServer('0.0.0.0', 9000)
     print("Server started. Listening for messages")
 
     while s.is_running():

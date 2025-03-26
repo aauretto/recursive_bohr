@@ -8,7 +8,7 @@ import socket
 import select
 import MessageBrokers
 
-### Any special message definitions can go here:
+#================ Any special message definitions can go here ================#
 # Special message that When sent will kill server. 
 from dataclasses import dataclass
 @dataclass(frozen=True)
@@ -19,6 +19,16 @@ class _StopServer():
         return type(value) != _StopServer
 STOP_SERVER_MSG = _StopServer()
 
+# Special message that server sends out when it closes
+@dataclass(frozen=True)
+class _ServerStopping():
+    def __eq__(self, value):
+        return type(value) == _ServerStopping
+    def __neq__(self, value):
+        return type(value) != _ServerStopping
+SERVER_STOPPING = _ServerStopping()
+
+
 # Purpose:
 #     Class that wraps socket functionality into a basic transmit and receive
 #     functions a client could use to connect to and communitcate with a server.
@@ -26,7 +36,7 @@ class BaseServer:
     def __init__(self, 
                  host : str, 
                  port : int, 
-                 qLen : int, 
+                 qLen : int = 1, 
                  msgBroker = MessageBrokers.LenAndPayload()):
         """
         Constructor
@@ -55,6 +65,14 @@ class BaseServer:
         # List of all open connections
         self.clients = []
 
+    def __del__(self):
+        """
+        Destructor -- Close all connections
+        """
+        for c in self.clients:
+            c.close()
+        self.sock.close()
+
     def accept_connections(self, nConx = 1):
         """
         Accepts n connections from clients. Blocks until we get all nConx 
@@ -65,13 +83,14 @@ class BaseServer:
             conx, addr = self.sock.accept() # wait for connection
             conx.setblocking(0)
             self.clients.append(conx)        
-            newClients.append(addr)
+            newClients.append(conx)
         return newClients
 
     def __del__(self):
         """
         Destructor -- Close all connections
         """
+        self.broadcast_message(SERVER_STOPPING)
         for c in self.clients:
             c.close()
         self.sock.close()
@@ -80,37 +99,19 @@ class BaseServer:
         """
         Send message msg to client client
         """
-        self.msgBroker.tx(client, msg)
+        try:
+            self.msgBroker.tx(client, msg)
+            return True
+        except:
+            return False
 
     def broadcast_message(self, msg):
         """
         Send message msg to all clients
         """
         for c in self.clients:
-            try:
-                self.tx_message(c, msg)
-            except:
-                continue
-
-    def handle_connection(self, client):
-        """
-        Called whenver theres a new client trying to connect. Default behavior 
-        is to accept the connection.
-        """
-        self.accept_connections()
-
-
-    def handle_message(self, client, msg):
-        """
-        Echos messages to all clients. Override this for server-specific 
-        behavior.
-        """
-        if msg == STOP_SERVER_MSG:
-            self.stop()
-            print("Set stop flag")
-            return
-        self.broadcast_message(msg)
-
+            self.tx_message(c, msg)
+    
     def rx_message(self):
         """
         Blocks until we get a message from any client. Then calls handle_message
@@ -125,15 +126,35 @@ class BaseServer:
                 return
             
             if client is self.sock:
-                self.handle_connection(client)
+                self.handle_connection()
             else:
                 try:
                     msg = self.msgBroker.rx(client)
-                    self.handle_message(client, msg)
-                except ConnectionAbortedError:
+                    if msg == None:
+                        self.remove_client(client)
+                    else:
+                        self.handle_message(client, msg)
+                except (ConnectionAbortedError, ConnectionResetError) as err:
+                    print(f"Got {err} from {client}. Removing connection...")
                     self.remove_client(client)
-                except ConnectionResetError:
-                    self.remove_client(client)
+    
+    def handle_connection(self):
+        """
+        Called whenver theres a new client trying to connect. Default behavior 
+        is to accept the connection.
+        """
+        self.accept_connections()
+
+    def handle_message(self, client, msg):
+        """
+        Echos messages to all clients. Override this for server-specific 
+        behavior.
+        """
+        if msg == STOP_SERVER_MSG:
+            self.stop()
+            print("Set stop flag")
+            return
+        self.broadcast_message(msg)
 
     def stop(self):
         self.__keepGoing = False
@@ -168,6 +189,7 @@ class BaseClient:
         This class supports only one connection at a time.
         """
         self.msgBroker = msgBroker
+        self.is_connected = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __del__(self):
@@ -182,6 +204,7 @@ class BaseClient:
         """
         try:
             self.sock.connect((host, port))
+            self.is_connected = True
             return True
         except OSError as err:
             return False
@@ -191,21 +214,27 @@ class BaseClient:
         Disconnect from the currently connected host. Does nothing if not 
         connected to anything.
         """
-        if self.is_connected():
+        if self.is_connected:
             self.sock.close()
+            self.is_connected = False
 
     def tx_message(self, msg):
         """
         Send a message
         """
-        self.msgBroker.tx(self.sock, msg)
+        try:
+            self.msgBroker.tx(self.sock, msg)
+            return True
+        except BrokenPipeError:
+            print("Failed to send Message, socket likely closed")
+            return False
 
     def rx_message(self):
         """
         Receive a message
         """
         msg = self.msgBroker.rx(self.sock)
-        self.handle_message(msg)
+        return self.handle_message(msg)
 
     def handle_message(self, msg):
         """
@@ -214,17 +243,3 @@ class BaseClient:
         """
         print(msg)
 
-    def is_connected(self):
-        """
-        Returns True if currently connected to a socket, False otherwise.
-        """
-        try:
-            # MSG_PEEK to check for data without consuming it
-            data = self.sock.recv(1, socket.MSG_PEEK)
-            return len(data) > 0
-        except BlockingIOError:
-            # No data available, but the socket is still open
-            return True
-        except Exception:
-            # Any other exception means the socket is likely closed
-            return False
