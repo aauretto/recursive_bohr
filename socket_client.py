@@ -33,7 +33,9 @@ def main():
             print("Conx with server closed")
             return
         except KeyboardInterrupt:
+            print("Disconnecting")
             c.disconnect()
+            print("Done")
             return
 
 if __name__ == "__main__":

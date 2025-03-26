@@ -19,8 +19,15 @@ class _StopServer():
         return type(value) != _StopServer
 STOP_SERVER_MSG = _StopServer()
 
+# Special message that server sends out when it closes
+@dataclass(frozen=True)
+class _ServerStopping():
+    def __eq__(self, value):
+        return type(value) == _ServerStopping
+    def __neq__(self, value):
+        return type(value) != _ServerStopping
+SERVER_STOPPING = _ServerStopping()
 
-#=================== Definitions for Base Server and Client ==================#
 
 # Purpose:
 #     Class that wraps socket functionality into a basic transmit and receive
@@ -79,6 +86,15 @@ class BaseServer:
             newClients.append(conx)
         return newClients
 
+    def __del__(self):
+        """
+        Destructor -- Close all connections
+        """
+        self.broadcast_message(SERVER_STOPPING)
+        for c in self.clients:
+            c.close()
+        self.sock.close()
+
     def tx_message(self, client, msg):
         """
         Send message msg to client client
@@ -114,10 +130,12 @@ class BaseServer:
             else:
                 try:
                     msg = self.msgBroker.rx(client)
-                    self.handle_message(client, msg)
-                except ConnectionAbortedError:
-                    self.remove_client(client)
-                except ConnectionResetError:
+                    if msg == None:
+                        self.remove_client(client)
+                    else:
+                        self.handle_message(client, msg)
+                except (ConnectionAbortedError, ConnectionResetError) as err:
+                    print(f"Got {err} from {client}. Removing connection...")
                     self.remove_client(client)
     
     def handle_connection(self):
