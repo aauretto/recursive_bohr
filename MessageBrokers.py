@@ -8,10 +8,10 @@
 #      rx(socket)          -- Receives messa-ge or group of messages from socket
 
 
-#================================ LenAndPayload ===============================
+#================================ LenAndPayload ==============================#
 # Format that prepends an int defining the length of the message to the 
 # message itself. Supports variable length messages.
-#==============================================================================
+#=============================================================================#
 
 import pickle
 class LenAndPayload():

@@ -8,7 +8,7 @@ import socket
 import select
 import MessageBrokers
 
-### Any special message definitions can go here:
+#================ Any special message definitions can go here ================#
 # Special message that When sent will kill server. 
 from dataclasses import dataclass
 @dataclass(frozen=True)
@@ -19,6 +19,9 @@ class _StopServer():
         return type(value) != _StopServer
 STOP_SERVER_MSG = _StopServer()
 
+
+#=================== Definitions for Base Server and Client ==================#
+
 # Purpose:
 #     Class that wraps socket functionality into a basic transmit and receive
 #     functions a client could use to connect to and communitcate with a server.
@@ -26,7 +29,7 @@ class BaseServer:
     def __init__(self, 
                  host : str, 
                  port : int, 
-                 qLen : int, 
+                 qLen : int = 1, 
                  msgBroker = MessageBrokers.LenAndPayload()):
         """
         Constructor
@@ -55,6 +58,14 @@ class BaseServer:
         # List of all open connections
         self.clients = []
 
+    def __del__(self):
+        """
+        Destructor -- Close all connections
+        """
+        for c in self.clients:
+            c.close()
+        self.sock.close()
+
     def accept_connections(self, nConx = 1):
         """
         Accepts n connections from clients. Blocks until we get all nConx 
@@ -65,52 +76,26 @@ class BaseServer:
             conx, addr = self.sock.accept() # wait for connection
             conx.setblocking(0)
             self.clients.append(conx)        
-            newClients.append(addr)
+            newClients.append(conx)
         return newClients
-
-    def __del__(self):
-        """
-        Destructor -- Close all connections
-        """
-        for c in self.clients:
-            c.close()
-        self.sock.close()
 
     def tx_message(self, client, msg):
         """
         Send message msg to client client
         """
-        self.msgBroker.tx(client, msg)
+        try:
+            self.msgBroker.tx(client, msg)
+            return True
+        except:
+            return False
 
     def broadcast_message(self, msg):
         """
         Send message msg to all clients
         """
         for c in self.clients:
-            try:
-                self.tx_message(c, msg)
-            except:
-                continue
-
-    def handle_connection(self, client):
-        """
-        Called whenver theres a new client trying to connect. Default behavior 
-        is to accept the connection.
-        """
-        self.accept_connections()
-
-
-    def handle_message(self, client, msg):
-        """
-        Echos messages to all clients. Override this for server-specific 
-        behavior.
-        """
-        if msg == STOP_SERVER_MSG:
-            self.stop()
-            print("Set stop flag")
-            return
-        self.broadcast_message(msg)
-
+            self.tx_message(c, msg)
+    
     def rx_message(self):
         """
         Blocks until we get a message from any client. Then calls handle_message
@@ -125,7 +110,7 @@ class BaseServer:
                 return
             
             if client is self.sock:
-                self.handle_connection(client)
+                self.handle_connection()
             else:
                 try:
                     msg = self.msgBroker.rx(client)
@@ -134,6 +119,24 @@ class BaseServer:
                     self.remove_client(client)
                 except ConnectionResetError:
                     self.remove_client(client)
+    
+    def handle_connection(self):
+        """
+        Called whenver theres a new client trying to connect. Default behavior 
+        is to accept the connection.
+        """
+        self.accept_connections()
+
+    def handle_message(self, client, msg):
+        """
+        Echos messages to all clients. Override this for server-specific 
+        behavior.
+        """
+        if msg == STOP_SERVER_MSG:
+            self.stop()
+            print("Set stop flag")
+            return
+        self.broadcast_message(msg)
 
     def stop(self):
         self.__keepGoing = False

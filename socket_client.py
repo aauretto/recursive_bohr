@@ -1,9 +1,14 @@
 from IPCutils import *
 
-
 def main():
     c = BaseClient()
-    c.connect_to("localhost", 9000)
+    print("about to connect")
+    connected = c.connect_to("10.243.100.155", 9000)
+    if connected:
+        print("connected successfully")
+    else:
+        print("not connected")
+        exit(1)
 
     while True:
         try: 
