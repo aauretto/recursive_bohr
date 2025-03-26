@@ -189,6 +189,7 @@ class BaseClient:
         This class supports only one connection at a time.
         """
         self.msgBroker = msgBroker
+        self.is_connected = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __del__(self):
@@ -203,6 +204,7 @@ class BaseClient:
         """
         try:
             self.sock.connect((host, port))
+            self.is_connected = True
             return True
         except OSError as err:
             return False
@@ -212,14 +214,20 @@ class BaseClient:
         Disconnect from the currently connected host. Does nothing if not 
         connected to anything.
         """
-        if self.is_connected():
+        if self.is_connected:
             self.sock.close()
+            self.is_connected = False
 
     def tx_message(self, msg):
         """
         Send a message
         """
-        self.msgBroker.tx(self.sock, msg)
+        try:
+            self.msgBroker.tx(self.sock, msg)
+            return True
+        except BrokenPipeError:
+            print("Failed to send Message, socket likely closed")
+            return False
 
     def rx_message(self):
         """
@@ -235,17 +243,3 @@ class BaseClient:
         """
         print(msg)
 
-    def is_connected(self):
-        """
-        Returns True if currently connected to a socket, False otherwise.
-        """
-        try:
-            # MSG_PEEK to check for data without consuming it
-            data = self.sock.recv(1, socket.MSG_PEEK)
-            return len(data) > 0
-        except BlockingIOError:
-            # No data available, but the socket is still open
-            return True
-        except Exception:
-            # Any other exception means the socket is likely closed
-            return False
