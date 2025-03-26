@@ -234,7 +234,7 @@ class BaseClient:
         Receive a message
         """
         msg = self.msgBroker.rx(self.sock)
-        self.handle_message(msg)
+        return self.handle_message(msg)
 
     def handle_message(self, msg):
         """
