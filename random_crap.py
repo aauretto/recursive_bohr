@@ -5,7 +5,7 @@ import threading
 
 class myListener(BaseClient):
     def __init__(self):
-        self.__super__().__init__()
+        super().__init__()
     
     def handle_message(self, msg):
         match msg:
@@ -27,7 +27,7 @@ def launch_listener(host, port):
 
 class mySpeaker(BaseClient):
     def __init__(self):
-        self.__super__().__init__()
+        super().__init__()
         self.allowedTokens = ["message", "list"]
         self.keepGoing = True
     
@@ -54,10 +54,10 @@ class mySpeaker(BaseClient):
 
 def main():
     c = mySpeaker()
-    c.connect_to("localhost, 9000")
+    c.connect_to("localhost", 9000)
 
 if __name__ == "__main__":
-    worker = threading.thread(target = launch_listener, args = ("localhost", 9000))
+    worker = threading.Thread(target = launch_listener, args = ("localhost", 9000))
     
     worker.start()
 
