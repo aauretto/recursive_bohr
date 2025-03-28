@@ -2,65 +2,108 @@
 
 from IPCutils import *
 import threading
+import shutil
+
+PROMPT = " >>> "
+termLock = threading.Lock()
+
+
+# THIS AND DRAW_PROMPT ARE EXTRA STUFF I TRIED
+def write_to_chatbox(msg):
+    with termLock:
+        columns = shutil.get_terminal_size().columns
+        print(f"\x1b[s",end="")
+        print(f"\x1b[1F\x1b[L{msg.rstrip("\n")}\n", end="")
+        print(f"-"*columns, end="") # should be on the old line - we can overwrite no issues here probably
+        print(f"\x1b[u\n\x1b[u\x1b[1B", end="", flush=True)
+
+def draw_prompt():
+    with termLock:
+        print(f"\x1b[1F\x1b[2K{PROMPT}",end = "")
+
 
 class myListener(BaseClient):
     def __init__(self):
         super().__init__()
-    
+
     def handle_message(self, msg):
         match msg:
             case _ if msg == SERVER_STOPPING:
-                self.disconnect()
                 return False
-            case ("State", state):
-                print(state)
+            case ("writer-left",):
+                return False
+            case ("message", uname, msg):
+                write_to_chatbox(f"[{uname}] > {msg}")
+            case _:
+                write_to_chatbox(f"[Listener] --> UKN MSG: {msg}")
         return True
-            
+
     def loop(self):
         while self.rx_message():
             pass
 
-def launch_listener(host, port):
-    l = myListener()
-    l.connect_to(host, port)
-    l.loop()
+    # Give this an already opened socket and it will listen to it
+    def listen_to(self, sock):
+        self.disconnect()
+        self.sock = sock
 
 class mySpeaker(BaseClient):
     def __init__(self):
         super().__init__()
-        self.allowedTokens = ["message", "list"]
         self.keepGoing = True
     
     def parse_input(self):
-        s = input("Enter a message: ", end = "")
+        s = input()
         match s.split():
-            case ["send", msg]:
-                self.tx_message(("message", msg))
-            case ["lsit"]:
-                self.tx_message(("list"))
-            case ["stop"]:
+            case ["kill-server"]:
                 self.tx_message(STOP_SERVER_MSG)
                 self.keepGoing = False
-            case _:
-                print(f"Unable tp parse input: {s}\nEnter a message: ", end = "")
+            case ["done"]:
+                self.tx_message(("im-leaving",))
+                self.keepGoing = False
+            case ["rename", name]:
+                self.tx_message(("rename", name))
+            case []:
+                return
+            case msg:
+                self.tx_message(("message", " ".join(msg)))
+
+    def get_sock(self):
+        return self.sock
 
     def loop(self):
         try:
             while self.keepGoing:
                 self.parse_input()
+                draw_prompt()
                 
         except KeyboardInterrupt:
-            self.tx_message(STOP_SERVER_MSG)
+            self.tx_message(("im-leaving",))
+
+
+def listen_and_print(sock):
+    l = myListener()
+    l.listen_to(sock)
+    l.loop()
 
 def main():
+    termLock = threading.Lock()
+
     c = mySpeaker()
     c.connect_to("localhost", 9000)
 
-if __name__ == "__main__":
-    worker = threading.Thread(target = launch_listener, args = ("localhost", 9000))
-    
+    columns = shutil.get_terminal_size().columns
+
+    print("\x1b[2m[INFO] > Joined Room.\x1b[0m")
+    print("-"*columns)
+    print(PROMPT, end = "")
+
+    worker = threading.Thread(target = listen_and_print, args = (c.get_sock(),))
     worker.start()
-
-    main()
-
+    c.loop()
     worker.join()
+    c.disconnect()
+
+
+if __name__ == "__main__":
+    main()

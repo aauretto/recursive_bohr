@@ -2,15 +2,15 @@ from IPCutils import *
 import random
 import string
 
-# Basic example - Inherit from BaseServer and let clients muck with some state
+# Basic chat server example -- Going to see if we can split the socket on the
+# client side and have one thread listen while another makes transmissions
 class MyServer(BaseServer):
     def __init__(self, host, port):
         # Super takes host addr, port, and max length of incoming connection
         # request queue
         super().__init__(host, port, 1)
         self.unames = {}
-        self.listeners = {}
-
+        self.gid = 0
     # Override handle_message
     def handle_message(self, client, msg):
         match msg:
@@ -19,23 +19,21 @@ class MyServer(BaseServer):
               self.tx_message(client, SERVER_STOPPING)
               print("Stopped")
             case ("message", msg):
-              for listener in self.listeners:
-                 self.tx_message(listener, self.unames[client], msg)
-            case ("unreg-listener"):
-              self.listeners.remove(client)
+                 self.broadcast_message(("message", self.unames[client], msg))
+            case ("rename", newName):
+                 self.unames[client] = newName
+                 self.tx_message(client, ("message", "SERVER", f"Your name is now {newName}"))
+            case ("im-leaving",):
+                print(f"{self.unames[client]} left.")
+                self.tx_message(client, ("writer-left",))
             case _:
               print(f"Unknown Message: {msg}")
 
-    def random_string(length):
-        chars = string.ascii_letters + string.digits  # a-z, A-Z, 0-9
-        return ''.join(random.choices(chars, k=length))
-
-    def handle_connection(self, client):
+    def handle_connection(self):
        print("Someones connecting")
-       [newClient] = super().handle_connection(client)
-       self.unames[newClient] = f"No-Name-{newClient}"
-
-
+       [newClient] = self.accept_connections()
+       self.unames[newClient] = f"No-Name-{self.gid}"
+       self.gid += 1
 
 def main():
     s = MyServer('localhost', 9000)
