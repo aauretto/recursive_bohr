@@ -22,10 +22,12 @@ class MyServer(BaseServer):
                  self.broadcast_message(("message", self.unames[client], msg))
             case ("rename", newName):
                  self.unames[client] = newName
-                 self.tx_message(client, ("message", "SERVER", f"Your name is now {newName}"))
+                 self.tx_message(client, ("status", f"Your name is now {newName}"))
             case ("im-leaving",):
                 print(f"{self.unames[client]} left.")
                 self.tx_message(client, ("writer-left",))
+            case ("list",):
+                self.tx_message(client, ("status", f"{list(self.unames.values())}"))
             case _:
               print(f"Unknown Message: {msg}")
 
@@ -34,6 +36,10 @@ class MyServer(BaseServer):
        [newClient] = self.accept_connections()
        self.unames[newClient] = f"No-Name-{self.gid}"
        self.gid += 1
+
+    def remove_client(self, client):
+        self.unames.pop(client)
+        return super().remove_client(client)
 
 def main():
     s = MyServer('localhost', 9000)

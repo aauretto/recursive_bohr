@@ -21,70 +21,66 @@ def draw_prompt():
     with termLock:
         print(f"\x1b[1F\x1b[2K{PROMPT}",end = "")
 
-
-class myListener(BaseClient):
-    def __init__(self):
-        super().__init__()
-
-    def handle_message(self, msg):
-        match msg:
-            case _ if msg == SERVER_STOPPING:
-                return False
-            case ("writer-left",):
-                return False
-            case ("message", uname, msg):
-                write_to_chatbox(f"[{uname}] > {msg}")
-            case _:
-                write_to_chatbox(f"[Listener] --> UKN MSG: {msg}")
-        return True
-
-    def loop(self):
-        while self.rx_message():
-            pass
-
-    # Give this an already opened socket and it will listen to it
-    def listen_to(self, sock):
-        self.disconnect()
-        self.sock = sock
-
 class mySpeaker(BaseClient):
     def __init__(self):
         super().__init__()
         self.keepGoing = True
-    
+        self.listeners = []
+
     def parse_input(self):
         s = input()
         match s.split():
-            case ["kill-server"]:
+            case ["~kill-server"]:
                 self.tx_message(STOP_SERVER_MSG)
                 self.keepGoing = False
-            case ["done"]:
+            case ["~done"]:
                 self.tx_message(("im-leaving",))
                 self.keepGoing = False
-            case ["rename", name]:
+            case ["~rename", name]:
                 self.tx_message(("rename", name))
+            case ["~list"]:
+                self.tx_message(("list",))
             case []:
                 return
             case msg:
                 self.tx_message(("message", " ".join(msg)))
 
-    def get_sock(self):
-        return self.sock
+    def handle_message(self, msg):
+        match msg:
+            case _ if msg == SERVER_STOPPING:
+                self.keepGoing = False
+            case ("writer-left",):
+                return
+            case ("status", msg):
+                write_to_chatbox(f"\x1b[38;5;245m[SERVER] > {msg}\x1b[0m")
+            case ("message", uname, msg):
+                write_to_chatbox(f"[{uname}] > {msg}")
+            case _:
+                write_to_chatbox(f"\x1b[38;5;226m[Listener] --> UKN MSG: {msg}\x1b[0m")
 
-    def loop(self):
+    def make_listener(self):
+        
+        def loop():
+            while self.keepGoing:
+                self.rx_message()
+        
+        t = threading.Thread(target=loop)
+        self.listeners.append(t)
+        t.start()
+
+    def cleanup(self):
+        for t in self.listeners:
+            t.join()
+
+    def speaker_loop(self):
         try:
             while self.keepGoing:
                 self.parse_input()
                 draw_prompt()
-                
         except KeyboardInterrupt:
+            self.keepGoing = False
             self.tx_message(("im-leaving",))
 
-
-def listen_and_print(sock):
-    l = myListener()
-    l.listen_to(sock)
-    l.loop()
 
 def main():
     termLock = threading.Lock()
@@ -94,14 +90,14 @@ def main():
 
     columns = shutil.get_terminal_size().columns
 
-    print("\x1b[2m[INFO] > Joined Room.\x1b[0m")
+    print("\x1b[38;5;245m[INFO] > Joined Room.\x1b[0m")
     print("-"*columns)
     print(PROMPT, end = "")
 
-    worker = threading.Thread(target = listen_and_print, args = (c.get_sock(),))
-    worker.start()
-    c.loop()
-    worker.join()
+    c.make_listener()
+    c.speaker_loop()
+    c.cleanup()
+
     c.disconnect()
 
 
