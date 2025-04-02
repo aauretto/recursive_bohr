@@ -62,6 +62,20 @@ class Card:
     
 
     def __str__(self):
-        return self.__rankString[self.rank] + "_" + self.__suitString[self.suit.value]
+        return self.__rankString[self.__rank - 1] + "_" + self.__suitString[self.__suit.value]
+    
+    @staticmethod
+    def are_adjacent(card1, card2):
+        """
+        Returns true if two cards differ in ranks by 1. Aces are treated
+        as differing in ranks by 1 from both 2's and Kings.        
+        """
+
+        if abs(card1.rank() - card2.rank()) == 1:
+            return True
+        # Accounting for aces being able to be played high/low
+        elif abs(card1.rank() - card2.rank()) == 12:
+            return True
+        return False
 
 

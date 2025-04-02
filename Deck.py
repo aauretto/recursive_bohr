@@ -1,6 +1,9 @@
 from Card import *
 import random
 
+class EmptyDeckError(Exception):
+    pass
+
 class Deck():
     def __init__(self):
         self.theDeck = []
@@ -14,7 +17,10 @@ class Deck():
         
 
     def deal(self, numToDeal):
-        toRet = self.theDeck[0:numToDeal]
+        try: 
+            toRet = self.theDeck[0:numToDeal]
+        except:
+            raise EmptyDeckError("Deck is empty")
         self.theDeck = self.theDeck[numToDeal:]
         return toRet
     

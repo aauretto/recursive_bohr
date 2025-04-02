@@ -1,6 +1,5 @@
-import Card
-import Deck
-from math import abs
+from Card import Card
+from Deck import Deck
 
 class Player:
     def __init__(self, deck, id, name="Simon Webber", layoutSize=4):
@@ -17,13 +16,18 @@ class Player:
         return self._layout
 
     # def attemptPlay(index): DONT KNOW WHAT ATTEMPT PLAY DOES HERES GETCARD
+    def deal_card(self):
+        return self.deck.deal(1)[0]
 
     def get_card(self, index):
         return self._layout[index]
     
     def play_card(self, layoutIndex):
         card = self._layout[layoutIndex]
-        self._layout[layoutIndex] = self.deck.deal(1)[0]
+        try:
+            self._layout[layoutIndex] = self.deck.deal(1)[0]
+        except Deck.EmptyDeckError:
+            self._layout[layoutIndex] = None
         return card
 
     
@@ -50,43 +54,46 @@ class ServerGameState:
         # For fairness, num_game_piles should be divisible by num_players
         self.game_piles = []
         for i in range(numGamePiles):
-            top_card = self.players[i % numPlayers].deck.deal(1)[0]
+            top_card = self.players[i % numPlayers].deal_card()
             self.game_piles.append(top_card)
         
-        self.winner = None
-
-    def __are_adjacent(card1, card2):
-        """
-        Returns true if two cards differ in ranks by 1. Aces are treated
-        as differing in ranks by 1 from both 2's and Kings.        
-        """
-
-        if abs(card1.rank() - card2.rank()) == 1:
-            return True
-        # Accounting for aces being able to be played high/low
-        elif abs(card1.rank() - card2.rank()) == 13:
-            return True
-        return False
+        self._winner = None
+        self._gameOver = False
 
     def __deal_game_pile(self):
         """
-        Deals out a card from each player's deck to the game piles  
+        Deals out a card from each player's deck to the game piles 
+
+        Declares a draw if everyone's decks are empty 
         """
+        emptyDecks = 0
         for i in range(len(self.players)):
-            self.game_piles[i] = self.players[i].deck.deal(1)[0]
+            try:
+                self.game_piles[i] = self.players[i].deck.deal(1)[0]
+            except Deck.EmptyDeckError:
+                emptyDecks += 1
+
+        if emptyDecks == len(self.players):
+            self._gameOver = True
+
 
     def __validate_game_state(self):
         """
         Function to check whether a game state is valid. Keeps dealing a
-        card from each players' decks to the game pile until a va
+        card from each players' decks to the game pile until a valid gamestate
+        is reached
+
+        Declares a draw if each players' decks are empty and nobody can make a
+        move
         """
         isValid = False
         for player in self.players:
             for i in range(self.layoutSize):
-                for middle_card in self.game_piles:
-                    if self.__are_adjacent(player.getCard(i), middle_card):
+                for middleCard in self.game_piles:
+                    if Card.are_adjacent(player.get_card(i), middleCard):
                         isValid = True
         if not isValid:
+            print("deadlock!!!")
             self.__deal_game_pile()
             self.__validate_game_state()
 
@@ -94,15 +101,27 @@ class ServerGameState:
         """
         Returns boolean indicating whether or not a play is valid
         """
-        playerCard = self.players[playerIndex].getCard[layoutIndex]
-        return self.__are_adjacent(playerCard, self.game_piles[centerIndex])
+        playerCard = self.players[playerIndex].get_card(layoutIndex)
+        return playerCard and Card.are_adjacent(playerCard, 
+                                                  self.game_piles[centerIndex])
             
 
     # note: got rid of the tuple from the design doc 
     def play_card(self, playerIndex, layoutIndex, centerIndex):
         if (self.__is_play_valid(playerIndex, layoutIndex, centerIndex)):
-            # NOT FINISHED ADD HERE 
-            self.__validate_game_state
+            card = self.players[playerIndex].play_card(layoutIndex)
+            self.game_piles[centerIndex] = card
+            if all(c is None for c in self.players[playerIndex].get_layout()):
+                self._winner = self.players[playerIndex]
+                self._gameOver = True
+                return True
+            self.__validate_game_state()
+            return True
+        else:
+            return False
 
+    def game_over(self):
+        return self._gameOver
 
-        
+    def get_winner(self):
+        return self._winner        
