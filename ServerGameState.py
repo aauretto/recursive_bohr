@@ -26,7 +26,7 @@ class Player:
         card = self._layout[layoutIndex]
         try:
             self._layout[layoutIndex] = self.deck.deal(1)[0]
-        except Deck.EmptyDeckError:
+        except:
             self._layout[layoutIndex] = None
         return card
 
@@ -48,6 +48,7 @@ class ServerGameState:
         for i in range(numPlayers):
             new_deck = Deck()
             new_deck.shuffle()
+            new_deck.deal(40) # TODO: Delete once done debugging
             self.players.append(Player(new_deck, i, layoutSize))
 
         # Create game piles from players' decks
@@ -56,6 +57,9 @@ class ServerGameState:
         for i in range(numGamePiles):
             top_card = self.players[i % numPlayers].deal_card()
             self.game_piles.append(top_card)
+
+        # Make sure someone can play
+        self.__validate_game_state()
         
         self._winner = None
         self._gameOver = False
@@ -69,8 +73,9 @@ class ServerGameState:
         emptyDecks = 0
         for i in range(len(self.players)):
             try:
-                self.game_piles[i] = self.players[i].deck.deal(1)[0]
-            except Deck.EmptyDeckError:
+                dealtArray = self.players[i].deck.deal(1)
+                self.game_piles[i] = dealtArray[0]
+            except:
                 emptyDecks += 1
 
         if emptyDecks == len(self.players):
@@ -89,11 +94,12 @@ class ServerGameState:
         isValid = False
         for player in self.players:
             for i in range(self.layoutSize):
-                for middleCard in self.game_piles:
-                    if Card.are_adjacent(player.get_card(i), middleCard):
-                        isValid = True
-        if not isValid:
-            print("deadlock!!!")
+                if player.get_card(i) is not None:
+                    for middleCard in self.game_piles:
+                        if Card.are_adjacent(player.get_card(i), middleCard):
+                            isValid = True
+        if not isValid and not self.game_over():
+            print("deadlock!!!") # TODO: Delete once done debugging
             self.__deal_game_pile()
             self.__validate_game_state()
 
