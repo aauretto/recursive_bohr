@@ -77,5 +77,3 @@ class Card:
         elif abs(card1.rank() - card2.rank()) == 12:
             return True
         return False
-
-
