@@ -62,6 +62,6 @@ class Card:
     
 
     def __str__(self):
-        return self.__rankString[self.rank] + "_" + self.__suitString[self.suit.value]
+        return self.__rankString[self.__rank] + "_" + self.__suitString[self.__suit.value]
 
 

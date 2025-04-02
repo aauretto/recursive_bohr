@@ -1,0 +1,87 @@
+import threading
+
+# TODO -- Send this to its own file
+class ClientStatePackage():
+    """
+    A package for communication about the game between the server and the client
+    about the relevant game objects
+    """     
+    def __init__(self, myLayout, theirLayout, midPiles): 
+        """
+        Constructor for the ClientStatePackage object
+
+        Parameters
+        ----------
+        myLayout : list(Card)
+            The cards that this player has in their layout
+        theirLayout : list(Card)
+            The cards the other player has in their layout
+        midPiles : list(Card)
+            The cards on the center piles
+        
+        Returns
+        -------
+        A ClientStatePackage object
+        """
+        self.myLayout    = myLayout
+        self.theirLayout = theirLayout
+        self.midPiles    = midPiles
+
+
+# This class wraps a client state package object and can be shared across 
+# threads to give multiple threads a way to access/change client state
+class ClientState():
+
+    def __init__(self, gameState):
+        """
+        A contructor for a ClientState object which is intended to be shared
+        between a Client and a Display
+
+        Parameters
+        ----------
+        gameState : ClientStatePackage
+            The initial state for the client
+
+        Returns
+        -------
+        A ClientState object
+        """
+        self.monitor = threading.Lock()
+        self.__gameState = gameState
+
+    def update_state(self, newState):
+        """
+        Change the reference to client state to a new object.
+
+        Parameters:
+        ----------
+        newState : ClientStatePackage
+
+        Effects:
+        -------
+        Cha
+        """
+        with self.monitor:
+            self.__gameState = newState
+
+    def get_state(self):
+        """
+        A getter for the current gamestate from the client's perspective
+
+        Returns
+        -------
+        myLayout: list(Card)
+            The layout of this player
+        theirLayout: list(Card)
+            The layout of the opponent player
+        midPiles: list(Card)
+            The cards in the center that players can play onto
+        """
+        with self.monitor:
+            myLayout    = self.__gameState.myLayout.copy()
+            theirLayout = self.__gameState.theirLayout.copy()
+            midPiles = self.__gameState.midPiles.copy()
+        
+        return myLayout, theirLayout, midPiles
+
+
