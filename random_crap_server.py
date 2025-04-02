@@ -1,6 +1,4 @@
 from IPCutils import *
-import random
-import string
 
 # Basic chat server example -- Going to see if we can split the socket on the
 # client side and have one thread listen while another makes transmissions
@@ -42,7 +40,7 @@ class MyServer(BaseServer):
         return super().remove_client(client)
 
 def main():
-    s = MyServer('localhost', 9000)
+    s = MyServer('0.0.0.0', 9000)
     print("Server started. Listening for messages")
 
     while s.is_running():
