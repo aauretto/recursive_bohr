@@ -13,7 +13,7 @@ def write_to_chatbox(msg):
     with termLock:
         columns = shutil.get_terminal_size().columns
         print(f"\x1b[s",end="")
-        print(f"\x1b[1F\x1b[L{msg.rstrip("\n")}\n", end="")
+        print(f"\x1b[1F\x1b[L{msg.rstrip('\n')}\n", end="")
         print(f"-"*columns, end="") # should be on the old line - we can overwrite no issues here probably
         print(f"\x1b[u\n\x1b[u\x1b[1B", end="", flush=True)
 
@@ -86,7 +86,7 @@ def main():
     termLock = threading.Lock()
 
     c = mySpeaker()
-    c.connect_to("localhost", 9000)
+    c.connect_to("10.243.100.155", 9000)
 
     columns = shutil.get_terminal_size().columns
 
