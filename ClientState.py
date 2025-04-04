@@ -32,7 +32,7 @@ class ClientStatePackage():
 # threads to give multiple threads a way to access/change client state
 class ClientState():
 
-    def __init__(self, gameState):
+    def __init__(self, gameState: ClientStatePackage):
         """
         A contructor for a ClientState object which is intended to be shared
         between a Client and a Display

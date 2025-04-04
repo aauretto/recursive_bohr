@@ -28,6 +28,10 @@ class _ServerStopping():
         return type(value) != _ServerStopping
 SERVER_STOPPING = _ServerStopping()
 
+#=============== Any Exceptions related to socket comms go here ===============#
+class UnableToConnectError(Exception):
+    def __init__(self, addr, port):
+        super().__init__(f"Unable to connect to: {addr}:{port}")
 
 # Purpose:
 #     Class that wraps socket functionality into a basic transmit and receive
@@ -73,6 +77,18 @@ class BaseServer:
             c.close()
         self.sock.close()
 
+    def reject_connections(self, nConx = 1):
+        """
+        Rejects n connections from clients. Blocks until we get through all 
+        nConx connections.
+        """
+        rejClients = []
+        for _ in range(nConx):
+            conx, addr = self.sock.accept() # Let them in then close the door
+            rejClients.append(conx)
+            conx.close()
+        return rejClients
+    
     def accept_connections(self, nConx = 1):
         """
         Accepts n connections from clients. Blocks until we get all nConx 
