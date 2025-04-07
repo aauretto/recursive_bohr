@@ -89,23 +89,16 @@ class Client(BaseClient):
         match msg:
             case ("game-stopped", "player-left", who):
                 ## Go-go-gadget display stuff
-                self.__keepGoing = False
-                print(f"{who} left the game. Closing down...")
+                self.stop_game()
             case ("game-stopped", "draw", _):
-                self.__keepGoing = False
-                self.display.stop_display()
                 self.gameResult = "draw"
-                print("ITS A DRAW")
+                self.stop_game()
             case ("game-stopped", "won", _):
-                self.__keepGoing = False
-                self.display.stop_display()
                 self.gameResult = "won"
-                print("YOU WIN")
+                self.stop_game()
             case ("game-stopped", "lost", winner):
-                self.__keepGoing = False
-                self.display.stop_display()
                 self.gameResult = "lost"
-                print(f"{winner} won!")
+                self.stop_game()
             case ("state", tag, csp): 
                 self.state.update_state(csp)
             case ("name-request",):
@@ -117,7 +110,9 @@ class Client(BaseClient):
                 print(f"Unable to parse message: {msg}")
                 # TODO do we gracefully exit here, what else would we do
 
-
+    def stop_game(self):
+        self.__keepGoing = False
+        self.display.stop_display() 
 
 if __name__ == "__main__":
     print("RUNNING CODE (WATCH OUT)")   
