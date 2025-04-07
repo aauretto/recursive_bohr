@@ -58,6 +58,9 @@ class BaseServer:
         self.host = host
         self.port = port
         self.msgBroker = msgBroker
+        
+        # List of all open connections
+        self.clients = []
 
         self.__keepGoing = True # Flag that stops server operations
 
@@ -66,8 +69,7 @@ class BaseServer:
         self.sock.bind((self.host, self.port))
         self.sock.listen(qLen)
 
-        # List of all open connections
-        self.clients = []
+
 
     def __del__(self):
         """
