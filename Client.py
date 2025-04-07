@@ -40,7 +40,7 @@ class Client(BaseClient):
         self.__keepGoing = False
         self.sender.join()
         self.listener.join()
-        self.final_state()
+        self.display.final_state(self.gameResult)
 
     def __setup(self):
         # Join game lobby and get initial state
@@ -112,14 +112,7 @@ class Client(BaseClient):
                 print(f"Unable to parse message: {msg}")
                 # TODO do we gracefully exit here, what else would we do
 
-    def final_state(self):
-        match self.gameResult:
-            case "won":
-                self.display.tie_state()
-            case "lost":
-                self.display.tie_state()
-            case "draw":
-                self.display.tie_state()
+
 
 if __name__ == "__main__":
     print("RUNNING CODE (WATCH OUT)")   

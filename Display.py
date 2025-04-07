@@ -166,8 +166,14 @@ class Display():
         surf, rect = self.remove_border(highlights, border_idx)
         screen.blit(surf, rect)
 
-    def tie_state(self):
-        image = pygame.image.load("./images/trophy.png").convert_alpha()
+    def final_state(self, result):
+        image = pygame.image.load(f"./images/{result}.png").convert_alpha()
         rect  = image.get_rect(center = (self.width // 2, self.height // 2))
         self.screen.blit(image, rect)
         pygame.display.flip()
+        quit=False
+        while not quit:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    quit = True
+        pygame.quit()
