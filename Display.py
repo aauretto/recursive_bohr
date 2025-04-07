@@ -124,11 +124,13 @@ class Display():
                                 # Turn off highlight
                                 self.remove_border_from(self.screen, highlights, selectedIdx)
                                 selectedIdx = None
+                                selected = False
+                            else:
                             
-                            selected = True
+                                selected = True
 
-                            selectedIdx = i
-                            print(f"Selected {card}")
+                                selectedIdx = i
+                                print(f"Selected {card}")
                             break
 
                     if selected:
