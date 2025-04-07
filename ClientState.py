@@ -6,6 +6,7 @@ class ClientStatePackage():
     A package for communication about the game between the server and the client
     about the relevant game objects
     """     
+    
     def __init__(self, myLayout, theirLayout, midPiles): 
         """
         Constructor for the ClientStatePackage object

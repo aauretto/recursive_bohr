@@ -41,6 +41,9 @@ class ServerGameState:
         from every players' deck, make sure to make numGamePiles divisible
         by numPlayers.
         """
+        
+        self._winner = None
+        self._gameOver = False
 
         # Create players
         self.players = []
@@ -60,9 +63,6 @@ class ServerGameState:
 
         # Make sure someone can play
         self.__validate_game_state()
-        
-        self._winner = None
-        self._gameOver = False
 
     def __deal_game_pile(self):
         """
@@ -130,4 +130,8 @@ class ServerGameState:
         return self._gameOver
 
     def get_winner(self):
-        return self._winner        
+        return self._winner    
+      
+    def get_player_info(self, playerIdx):
+        player = self.players[playerIdx]
+        return player.get_layout().copy(), self.players[playerIdx - 1].get_layout().copy(), self.game_piles.copy()

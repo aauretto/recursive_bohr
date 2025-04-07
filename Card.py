@@ -13,15 +13,6 @@ class Card:
         HEARTS   = 2
         DIAMONDS = 3
 
-    # Suits for readability:
-    __suits = {
-        "S" : Suit.SPADES, 
-        "C" : Suit.CLUBS, 
-        "H" : Suit.HEARTS,
-        "D" : Suit.DIAMONDS
-    }
-    __suitString = ["s", "c", "h", "d"]
-
     # Ranks for readability:
     __ranks = {
         "A" : 1,
@@ -39,6 +30,12 @@ class Card:
         "K" : 13
     }
     __rankString = ["a", "2", "3", "4", "5", "6", "7", "8", "9", "10", "j", "q", "k"]
+    __suitString = {Suit.SPADES   : "s", 
+                    Suit.CLUBS    : "c", 
+                    Suit.HEARTS   : "h", 
+                    Suit.DIAMONDS : "d"}
+
+
     def __init__(self, rank: int, suit: Suit):
         self.__rank = rank
         self.__suit = suit
@@ -62,7 +59,7 @@ class Card:
     
 
     def __str__(self):
-        return self.__rankString[self.__rank - 1] + "_" + self.__suitString[self.__suit.value]
+        return self.__rankString[self.__rank - 1] + "_" + self.__suitString[self.__suit]
     
     @staticmethod
     def are_adjacent(card1, card2):
