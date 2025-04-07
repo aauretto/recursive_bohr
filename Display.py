@@ -6,7 +6,7 @@ from queue import Queue
 FPS = 60
 CARD_DIR = './images/card_pngs/'
 HIGHLIGHT_COLOR = (180, 0, 180)
-FONT_SIZE = 10
+FONT_SIZE = 30
 
 class Display():
     def __init__(self, clientGame: ClientState, msgQueue: Queue, screenWidth = 1000, screenHeight = 800, backgroundColor=(30, 92, 58)):
@@ -109,7 +109,8 @@ class Display():
             # Event Loop
             for  event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
+                    self.msgQueue.put(("quitting",))
+                    
                     self.running = False
 
                 # Start dragging when mouse button is pressed

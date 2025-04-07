@@ -84,6 +84,8 @@ class Server(BaseServer):
             match msg:
                 case ("play", playAction):    
                     self.handle_play(client, playAction)
+                case ("quitting",):
+                    self.__stop_game("player-left", self.currentPlayers[client]['uname'])
 
     def __winner_from_id(self, id):
         for client, clientDict in self.currentPlayers:
@@ -146,7 +148,7 @@ class Server(BaseServer):
 
     def remove_client(self, client):
         super().remove_client(client)
-        self.__stop_game("player-left", {self.currentPlayers[client]["uname"]})
+        self.__stop_game("player-left", self.currentPlayers[client]["uname"])
         
     def __stop_game(self, reason, data=None):
         if self.serverStatus != ServerStatus.STOPPED:

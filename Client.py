@@ -40,7 +40,8 @@ class Client(BaseClient):
         self.__keepGoing = False
         self.sender.join()
         self.listener.join()
-        self.display.final_state(self.gameResult)
+        if self.gameResult: # If we arent killed by user, show result
+            self.display.final_state(self.gameResult)
 
     def __setup(self):
         # Join game lobby and get initial state
@@ -58,7 +59,10 @@ class Client(BaseClient):
         while self.__keepGoing:
             msg = self.msgQueue.get(block=True)
             if msg:
+                if msg == ("quitting",):
+                    self.__keepGoing = False
                 self.tx_message(msg)
+
 
     def __spawn_sender(self):
         """
@@ -86,6 +90,7 @@ class Client(BaseClient):
             case ("game-stopped", "player-left", who):
                 ## Go-go-gadget display stuff
                 self.__keepGoing = False
+                print(f"{who} left the game. Closing down...")
             case ("game-stopped", "draw", _):
                 self.__keepGoing = False
                 self.display.stop_display()
