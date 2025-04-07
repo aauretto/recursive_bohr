@@ -62,7 +62,7 @@ class Server(BaseServer):
         ### DO LOOP THINGS
         while self.serverStatus == ServerStatus.RUNNING:
             self.rx_message()
-    
+
     def __all_named(self):
         return all(map(lambda x: x['uname'] != None, self.currentPlayers.values()))
 
@@ -83,16 +83,41 @@ class Server(BaseServer):
             ### Handle moves and game logic
             match msg:
                 case ("play", playAction):    
-                    clientIdx = self.currentPlayers[client]["id"]
-                    validMove = self.state.play_card(clientIdx, 
-                                                     playAction.layoutIdx, 
-                                                     playAction.midPileIdx)
-                    if validMove:
-                        self.broadcast_gamestate("new")
-                    else:
-                        self.tx_message(client, 
-                                        ("bad-move", 
-                                         self.__package_gamestate(client)))
+                    self.handle_play(client, playAction)
+
+    def __winner_from_id(self, id):
+        for client, clientDict in self.currentPlayers:
+            if clientDict["id"] == id:
+                return client
+
+    def exclusive_broadcast(self, clientsToExclude, msg):
+        """
+        Broadcasts a message to all but clients in list clientsToExclude
+        """
+        for c in self.clients:
+            if c not in clientsToExclude:
+                self.tx_message(c, msg)
+
+    def handle_play(self, client, playAction):
+        clientIdx = self.currentPlayers[client]["id"]
+        validMove = self.state.play_card(clientIdx, 
+                                            playAction.layoutIdx, 
+                                            playAction.midPileIdx)
+
+        if self.gameState.game_over():
+            if winnerId := self.gamestate.get_winner():
+                winner = self.__winner_from_id(winnerId)
+                self.__stop_game("winner", data=winner)
+            else: # Draw
+                self.__stop_game("draw")
+
+        else: # Handle the play that was made
+            if validMove:
+                self.broadcast_gamestate("new")
+            else:
+                self.tx_message(client, 
+                                ("bad-move", 
+                                self.__package_gamestate(client)))
 
 
     def handle_connection(self):
@@ -125,16 +150,22 @@ class Server(BaseServer):
         super().remove_client(client)
         self.__stop_game("player-left", {self.currentPlayers[client]["uname"]})
         
-    def __stop_game(self, reason, data=""):
+    def __stop_game(self, reason, data=None):
         if self.serverStatus != ServerStatus.STOPPED:
             self.serverStatus = ServerStatus.STOPPED
-            self.broadcast_message(('game-stopped', reason, data))
+            if reason == "winner":
+                # in this case, data == client socket that won
+                self.exclusive_broadcast([data], ("game-stopped", "lost", self.currentPlayers[data]['uname']))
+                self.tx_message(data, ("game-stopped", "won", "CONGRATS!"))
+            else:
+                self.broadcast_message(('game-stopped', reason, data))  
 
-SERVER_ADDR = "localhost"
+# SERVER_ADDR = "localhost"
+SERVER_ADDR = "0.0.0.0"
 SERVER_PORT = 9000
 
 def main():
-    server = Server(SERVER_ADDR, SERVER_PORT, 1)
+    server = Server(SERVER_ADDR, SERVER_PORT, 2)
     print(f"Created a server on port {9000}")
     server.start()
 

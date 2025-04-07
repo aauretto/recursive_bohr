@@ -35,7 +35,7 @@ class Client(BaseClient):
 
     def run(self):
         self.display.run()
-        self.keepGoing = False
+        self.__keepGoing = False
         self.sender.join()
         self.listener.join()
     
@@ -81,7 +81,19 @@ class Client(BaseClient):
         match msg:
             case ("game-stopped", "player-left", who):
                 ## Go-go-gadget display stuff
-                self.keepGoing = False
+                self.__keepGoing = False
+            case ("game-stopped", "draw", _):
+                self.__keepGoing = False
+                self.display.stop_display()
+                print("ITS A DRAW")
+            case ("game-stopped", "won", _):
+                self.__keepGoing = False
+                self.display.stop_display()
+                print("YOU WIN")
+            case ("game-stopped", "lost", winner):
+                self.__keepGoing = False
+                self.display.stop_display()
+                print(f"{winner} won!")
             case ("state", tag, csp): 
                 self.state.update_state(csp)
             case ("name-request",):

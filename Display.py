@@ -61,7 +61,9 @@ class Display():
             cardRect.center = (xlocs[i], self.vpos[who])
             self.screen.blit(card, cardRect)
 
-     
+    def stop_display(self):
+        self.running = False
+
     def run(self):
         # Tells us which cards are selected
         selected = False

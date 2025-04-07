@@ -117,7 +117,7 @@ class ServerGameState:
             card = self.players[playerIndex].play_card(layoutIndex)
             self.game_piles[centerIndex] = card
             if all(c is None for c in self.players[playerIndex].get_layout()):
-                self._winner = self.players[playerIndex]
+                self._winner = playerIndex
                 self._gameOver = True
                 return True
             self.__validate_game_state()
