@@ -91,6 +91,8 @@ class ClientState():
             The layout of the opponent player
         midPiles: list(Card)
             The cards in the center that players can play onto
+        realCards: list(bool)
+            Whether or not a specific layout pile in myLayout is nonempty
         """
         with self.monitor:
             if not self.__hasData:
@@ -99,7 +101,7 @@ class ClientState():
             theirLayout = self.__gameState.theirLayout.copy()
             midPiles = self.__gameState.midPiles.copy()
 
-        return myLayout, theirLayout, midPiles
+        return myLayout, theirLayout, midPiles, [c != None for c in myLayout]
         
     
     def __str__(self):

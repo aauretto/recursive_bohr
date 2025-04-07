@@ -68,13 +68,13 @@ class Display():
         # Tells us which cards are selected
         selected = False
         selectedIdx = None
-        
+
         while self.running:
             self.clock.tick(FPS)
             self.screen.fill(self.backgroundColor)
 
             # Make and place the cards on the screen
-            myLayout, theirLayout, midPiles = self.gameState.get_state()
+            myLayout, theirLayout, midPiles, selectable = self.gameState.get_state()
 
             myLayout = self.__layout_to_cards_rects(myLayout)
             theirLayout = self.__layout_to_cards_rects(theirLayout)
@@ -109,7 +109,7 @@ class Display():
                     
                     # Check if selecting one of our cards
                     for i, (card, card_rect) in enumerate(myLayout):
-                        if card_rect.collidepoint(event.pos):  # Check if mouse is on one of our cards
+                        if card_rect.collidepoint(event.pos) and selectable[i]:  # Check if mouse is on one of our cards
                             if selected:
                                 # Turn off highlight
                                 self.remove_border_from(self.screen, highlights, selectedIdx)
