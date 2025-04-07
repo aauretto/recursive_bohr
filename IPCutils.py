@@ -8,30 +8,24 @@ import socket
 import select
 import MessageBrokers
 
-#================ Any special message definitions can go here ================#
-# Special message that When sent will kill server. 
-from dataclasses import dataclass
-@dataclass(frozen=True)
-class _StopServer():
-    def __eq__(self, value):
-        return type(value) == _StopServer
-    def __neq__(self, value):
-        return type(value) != _StopServer
-STOP_SERVER_MSG = _StopServer()
-
-# Special message that server sends out when it closes
-@dataclass(frozen=True)
-class _ServerStopping():
-    def __eq__(self, value):
-        return type(value) == _ServerStopping
-    def __neq__(self, value):
-        return type(value) != _ServerStopping
-SERVER_STOPPING = _ServerStopping()
-
 #=============== Any Exceptions related to socket comms go here ===============#
 class UnableToConnectError(Exception):
     def __init__(self, addr, port):
         super().__init__(f"Unable to connect to: {addr}:{port}")
+
+def get_ip():
+    """
+    Function that gets the IP address we can be reached at if we host a server
+    on 0.0.0.0
+    """
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))  # Use Google's DNS as a dummy target
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception as e:
+        return f"Error: {e}"
 
 # Purpose:
 #     Class that wraps socket functionality into a basic transmit and receive
@@ -108,7 +102,6 @@ class BaseServer:
         """
         Destructor -- Close all connections
         """
-        self.broadcast_message(SERVER_STOPPING)
         for c in self.clients:
             c.close()
         self.sock.close()

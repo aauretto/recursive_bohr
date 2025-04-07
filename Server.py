@@ -113,7 +113,7 @@ class Server(BaseServer):
         Runs the game
         """
         ### TODO SOCKET TIMEOUT THINS
-
+        
         while self.serverStatus == ServerStatus.RUNNING:
             self.rx_message()
     
@@ -278,24 +278,13 @@ class Server(BaseServer):
             else:
                 self.broadcast_message(('game-stopped', reason, data))  
 
-
-def my_ip():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))  # Use Google's DNS as a dummy target
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception as e:
-        return f"Error: {e}"
-
 # SERVER_ADDR = "localhost"
 SERVER_ADDR = "0.0.0.0"
 SERVER_PORT = 9000
 
 def main():
     server = Server(SERVER_ADDR, SERVER_PORT, 2)
-    print(f"Created a server at {my_ip()}:{9000}")
+    print(f"Created a server at {get_ip()}:{9000}")
     server.start()
 
 if __name__ == "__main__":
