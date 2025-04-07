@@ -6,6 +6,7 @@ from queue import Queue
 FPS = 60
 CARD_DIR = './images/card_pngs/'
 HIGHLIGHT_COLOR = (180, 0, 180)
+FONT_SIZE = 10
 
 class Display():
     def __init__(self, clientGame: ClientState, msgQueue: Queue, screenWidth = 1000, screenHeight = 800, backgroundColor=(30, 92, 58)):
@@ -79,7 +80,7 @@ class Display():
             self.screen.fill(self.backgroundColor)
 
             # Make and place the cards on the screen
-            myLayout, theirLayout, midPiles, selectable = self.gameState.get_state()
+            myLayout, theirLayout, midPiles, selectable, myCardsLeft, theirCardsLeft = self.gameState.get_state()
 
             myLayout = self.__layout_to_cards_rects(myLayout)
             theirLayout = self.__layout_to_cards_rects(theirLayout)
@@ -88,6 +89,10 @@ class Display():
             self.__place_cards(myLayout, 'me')
             self.__place_cards(theirLayout, 'them')
             self.__place_cards(midPiles, 'mid')
+
+            # Show cards left
+            self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
+            self.__show_cards(theirCardsLeft, FONT_SIZE)
 
             # Handle visualization of player selecting a card
             highlights = []
@@ -137,6 +142,16 @@ class Display():
                             
             pygame.display.flip()
 
+    def __show_cards(self, num, height):
+        # Set up font
+
+        font = pygame.font.SysFont(None, FONT_SIZE)  # None = default font, 72 = size
+
+        # Get rect to center it
+        text_surface = font.render(f"Cards Remaining: {num}", True, (0, 0, 0))  # True = anti-aliasing
+        text_rect = text_surface.get_rect(center=(self.width // 2, height))
+        self.screen.blit(text_surface, text_rect)
+
     def make_border(self, rect_add, cntr_offset, rect, color, width = 5):
         """
         Creates a border
@@ -169,7 +184,7 @@ class Display():
     def final_state(self, result):
         # image = pygame.image.load(f"./images/{result}.png").convert_alpha()
         image = pygame.image.load(f"./images/won.png").convert_alpha()
-        image.set_alpha(75)
+        image.set_alpha(128)
         image = pygame.transform.scale(image, (self.width // 2, self.height // 2))
         rect  = image.get_rect(center = (self.width // 2, self.height // 2))
         self.screen.blit(image, rect)

@@ -12,7 +12,7 @@ class ClientStatePackage():
     about the relevant game objects
     """     
     
-    def __init__(self, myLayout, theirLayout, midPiles): 
+    def __init__(self, myLayout, theirLayout, midPiles, myDeckSize, theirDeckSize): 
         """
         Constructor for the ClientStatePackage object
 
@@ -32,10 +32,9 @@ class ClientStatePackage():
         self.myLayout    = myLayout
         self.theirLayout = theirLayout
         self.midPiles    = midPiles
+        self.myDeckSize = myDeckSize
+        self.theirDeckSize = theirDeckSize
     
-    def __str__(self):
-        return f"ClientStatePackage: My Piles: {[str(c) for c in self.myLayout]},\nTheir Piles: {[str(c) for c in self.theirLayout]},\nMid Piles: {[str(c) for c in self.midPiles]}"
-
 
 # This class wraps a client state package object and can be shared across 
 # threads to give multiple threads a way to access/change client state
@@ -96,15 +95,14 @@ class ClientState():
         """
         with self.monitor:
             if not self.__hasData:
-                return None, None, None
+                return None, None, None, None, None
             myLayout    = self.__gameState.myLayout.copy()
             theirLayout = self.__gameState.theirLayout.copy()
             midPiles = self.__gameState.midPiles.copy()
+            myDeckSize = self.__gameState.myDeckSize
+            theirDeckSize = self.__gameState.theirDeckSize
 
-        return myLayout, theirLayout, midPiles, [c != None for c in myLayout]
+        return myLayout, theirLayout, midPiles, [c != None for c in myLayout], myDeckSize, theirDeckSize
         
-    
-    def __str__(self):
-        return f"ClientState: {self.__gameState}"
 
 

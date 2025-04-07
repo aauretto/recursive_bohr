@@ -141,8 +141,8 @@ class Server(BaseServer):
         to know and packages them into a ClientStatePackage object
         """
         clientIdx = self.currentPlayers[client]['id']
-        (playerLayout, oppLayout, midPiles) = self.state.get_player_info(clientIdx)
-        return ClientStatePackage(playerLayout, oppLayout, midPiles)
+        playerLayout, oppLayout, midPiles, myDeckSize, theirDeckSize = self.state.get_player_info(clientIdx)
+        return ClientStatePackage(playerLayout, oppLayout, midPiles, myDeckSize, theirDeckSize)
 
     def remove_client(self, client):
         super().remove_client(client)

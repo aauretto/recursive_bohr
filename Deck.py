@@ -15,6 +15,8 @@ class Deck():
     def shuffle(self):
         random.shuffle(self.theDeck)
         
+    def __len__(self):
+        return len(self.theDeck)
 
     def deal(self, numToDeal):
         try: 

@@ -30,6 +30,9 @@ class Player:
             self._layout[layoutIndex] = None
         return card
 
+    def cards_left(self):
+        return len(self.deck)
+
     
 class ServerGameState:
     def __init__(self, numPlayers=2, numGamePiles=2, layoutSize=4):
@@ -133,4 +136,4 @@ class ServerGameState:
       
     def get_player_info(self, playerIdx):
         player = self.players[playerIdx]
-        return player.get_layout().copy(), self.players[playerIdx - 1].get_layout().copy(), self.game_piles.copy()
+        return player.get_layout().copy(), self.players[playerIdx - 1].get_layout().copy(), self.game_piles.copy(), player.cards_left(), self.players[playerIdx - 1].cards_left()
