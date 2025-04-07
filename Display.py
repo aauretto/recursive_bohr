@@ -12,22 +12,22 @@ class Display():
         if not pygame.get_init():
             pygame.init()
         pygame.display.set_caption("Spit")
+        self.gameState = clientGame
+        self.msgQueue = msgQueue
 
         self.width = screenWidth
         self.height = screenHeight
         self.targetCardWidth = self.width // 10
-        self.msgQueue = msgQueue
 
         self.vpos = {
                       "them" : self.height - (5 * (self.height)) // (5 + 1),
-                      "me"   : self.height - (3 * (self.height)) // (5 + 1),
-                      "mid"  : self.height - (1 * (self.height)) // (5 + 1),
+                      "me"   : self.height - (1 * (self.height)) // (5 + 1),
+                      "mid"  : self.height - (3 * (self.height)) // (5 + 1),
                     }
 
 
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption(f"Spit!")
-        self.gameState = clientGame
         self.backgroundColor = backgroundColor
 
 
@@ -35,7 +35,7 @@ class Display():
         self.running = True
 
     def __layout_to_cards_rects(self, layout):
-        layout = [pygame.image.load(CARD_DIR + card + '.png') \
+        layout = [pygame.image.load(CARD_DIR + str(card) + '.png') \
                   for card in layout]
         layout = [pygame.transform.scale(card, 
                             (card.get_width() // math.ceil(card.get_width() \
@@ -85,7 +85,7 @@ class Display():
             # Handle visualization of player selecting a card
             highlights = []
             for (_, rect) in myLayout:
-                highlights.apend(self.make_border(10, .5, rect, HIGHLIGHT_COLOR))
+                highlights.append(self.make_border(10, .5, rect, HIGHLIGHT_COLOR))
             
             if selected:
                 (surf, rect) = highlights[selectedIdx]
