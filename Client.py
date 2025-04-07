@@ -1,7 +1,9 @@
 from IPCutils import *
-from ClientState import *
+from SharedState import ClientState
 import threading
-import time
+from Display import Display
+from queue import Queue
+
 
 class Client(BaseClient):
     def __init__(self, serverAddr, port, name, timeout=5):
@@ -13,6 +15,7 @@ class Client(BaseClient):
         ### Initialize members
         self.state = None
         self.name = name
+        self.msgQueue = Queue()
 
         ### Set up socket:
         # make connection and get start state
@@ -22,36 +25,43 @@ class Client(BaseClient):
         self.sock.settimeout(None)
 
         if self.__keepGoing:
+            self.display = Display(self.state, self.msgQueue)
             self.__setup()
-            self.__display_loop()
+            print(f"Finished setup")
         else:
             raise UnableToConnectError(serverAddr, port)
         
+        self.run()
 
-    def __display_loop(self):
-        while self.__keepGoing:
-            # DO display stuff in here
-            (m, t, mid) = self.state.get_state()
-
-            print(*t, sep = " | ")
-            print(*mid, sep = "     ")
-            print(*m, sep = " | ")
-
-            layoutIdx, midPileIdx = self.TEMP_parse_cli()
-            self.tx_message(("play", layoutIdx, midPileIdx))
-
-    def TEMP_parse_cli(self):
-        [layoutStr, midStr] = input("Input: ").split()  
-        return (int(layoutStr), int(midStr))
-
+    def run(self):
+        self.display.run()
+        self.keepGoing = False
+        self.sender.join()
+        self.listener.join()
+    
     def __setup(self):
         # Join game lobby and get initial state
-
+        self.__spawn_sender()
+        
         while not self.state:
             self.rx_message()
+        print(f'State received')
         self.__spawn_listener()
 
-        
+    def __send_worker(self):
+        """
+        Worker that sends game action messages to the server.
+        """
+        while self.__keepGoing:
+            msg = self.msgQueue.get(block=True)
+            self.tx_message(msg)
+
+    def __spawn_sender(self):
+        """
+        Spools up a sender thread
+        """
+        self.sender = threading.Thread(target=self.__send_worker)
+        self.sender.start()
 
     def __listener_worker(self):
         """
@@ -61,24 +71,25 @@ class Client(BaseClient):
         while self.__keepGoing:
             self.rx_message()
 
-
     def __spawn_listener(self):
-        self.worker = threading.Thread(target = self.__listener_worker)
-        self.worker.start()
+        self.listener = threading.Thread(target = self.__listener_worker)
+        self.listener.start()
 
 
     def handle_message(self, msg):
+        print(f"Client received {msg}")
         match msg:
             case ("game-stopped", "player-left", who):
                 ## Go-go-gadget display stuff
                 self.keepGoing = False
-            case ("state", tag, csp): 
+            case ("state", 'initial', csp): 
                 self.state = ClientState(csp)
+            case ("state", 'new', csp): 
+                self.state.update_state(csp)
             case ("name-request",):
                 self.tx_message(("player-name", self.name))
-                self.tx_message(("ready",))
             case ("everybody-joined", players):
-                print(f"Players in session: {players}")
+                self.display.get_ready(players)
                 ## Go-go-gadget display stuff
             case _:
                 print(f"Unable to parse message: {msg}")

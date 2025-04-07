@@ -1,5 +1,10 @@
 import threading
 
+class PlayCardAction():
+    def __init__(self, layoutIdx, midPileIdx):
+        self.layoutIdx = layoutIdx
+        self.midPileIdx = midPileIdx
+
 # TODO -- Send this to its own file
 class ClientStatePackage():
     """
@@ -27,6 +32,9 @@ class ClientStatePackage():
         self.myLayout    = myLayout
         self.theirLayout = theirLayout
         self.midPiles    = midPiles
+    
+    def __str__(self):
+        return f"ClientStatePackage: My Piles: {[str(c) for c in self.myLayout]},\nTheir Piles: {[str(c) for c in self.theirLayout]},\nMid Piles: {[str(c) for c in self.midPiles]}"
 
 
 # This class wraps a client state package object and can be shared across 
@@ -84,5 +92,8 @@ class ClientState():
             midPiles = self.__gameState.midPiles.copy()
         
         return myLayout, theirLayout, midPiles
+    
+    def __str__(self):
+        return f"ClientState: {self.__gameState}"
 
 

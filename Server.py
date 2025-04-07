@@ -2,8 +2,9 @@ from IPCutils import *
 from ServerGameState import *
 from enum import Enum
 from functools import *
-from ClientState import ClientStatePackage
+from SharedState import ClientStatePackage, PlayCardAction
 
+import time
 
 class ClientStatus(Enum):
     CONNECTED = 0
@@ -34,8 +35,13 @@ class Server(BaseServer):
         while len(self.currentPlayers) < self.maxPlayers:
             self.handle_connection()
 
+        self.broadcast_message(('name-request',))
+        while not self.__all_named():
+            self.rx_message()
+
         # Tell everyone that everyone connected
-        self.broadcast_message(("everybody-joined", self.__player_names()))
+        player_names = self.__player_names()
+        self.broadcast_message(("everybody-joined", player_names))
 
         while not self.__all_ready():
             self.rx_message()
@@ -56,28 +62,33 @@ class Server(BaseServer):
         ### DO LOOP THINGS
         while self.serverStatus == ServerStatus.RUNNING:
             self.rx_message()
+    
+    def __all_named(self):
+        return all(map(lambda x: x['uname'] != None, self.currentPlayers.values()))
 
     # Override handle_message
     def handle_message(self, client, msg):
+        print(f"Server received {msg}")
         if self.serverStatus == ServerStatus.SETUP:
             ### Wait unitl all clients say they are ready
+
             match msg:
-                case ("ready",):
-                    self.currentPlayers[client]['status'] = ClientStatus.READY
                 case ("player-name", name):
                     self.currentPlayers[client]["uname"] = name
+                case ("ready",):
+                    self.currentPlayers[client]['status'] = ClientStatus.READY
                 case _:
                     print(f"Non-ready msg received: {msg}")
         elif self.serverStatus == ServerStatus.RUNNING:
             ### Handle moves and game logic
             match msg:
-                case ("play", layoutIdx, midPileIdx):    
+                case ("play", playAction):    
                     clientIdx = self.currentPlayers[client]["id"]
                     validMove = self.state.play_card(clientIdx, 
-                                                     layoutIdx, 
-                                                     midPileIdx)
+                                                     playAction.layoutIdx, 
+                                                     playAction.midPileIdx)
                     if validMove:
-                        self.broadcast_gamestate("new-state")
+                        self.broadcast_gamestate("new")
                     else:
                         self.tx_message(client, 
                                         ("bad-move", 
@@ -91,8 +102,7 @@ class Server(BaseServer):
             [newClient] = self.accept_connections()
             self.currentPlayers[newClient] = {'id': len(self.currentPlayers),
                                               'status': ClientStatus.CONNECTED,
-                                              'uname' : "No one"}
-            self.tx_message(newClient, ("name-request",))
+                                              'uname' : None}
             #TODO send clients a waiting for everyone to join message
             #if we dont get enough conx in time t, then disconnect everyone
     

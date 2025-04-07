@@ -99,7 +99,6 @@ class ServerGameState:
                         if Card.are_adjacent(player.get_card(i), middleCard):
                             isValid = True
         if not isValid and not self.game_over():
-            print("deadlock!!!") # TODO: Delete once done debugging
             self.__deal_game_pile()
             self.__validate_game_state()
 
