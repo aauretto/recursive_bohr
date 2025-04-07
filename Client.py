@@ -16,6 +16,8 @@ class Client(BaseClient):
         self.state = ClientState(None)
         self.name = name
         self.msgQueue = Queue()
+        self.gameResult = None
+
 
         ### Set up socket:
         # make connection and get start state
@@ -38,7 +40,8 @@ class Client(BaseClient):
         self.__keepGoing = False
         self.sender.join()
         self.listener.join()
-    
+        self.final_state()
+
     def __setup(self):
         # Join game lobby and get initial state
         self.__spawn_sender()
@@ -86,14 +89,17 @@ class Client(BaseClient):
             case ("game-stopped", "draw", _):
                 self.__keepGoing = False
                 self.display.stop_display()
+                self.gameResult = "draw"
                 print("ITS A DRAW")
             case ("game-stopped", "won", _):
                 self.__keepGoing = False
                 self.display.stop_display()
+                self.gameResult = "won"
                 print("YOU WIN")
             case ("game-stopped", "lost", winner):
                 self.__keepGoing = False
                 self.display.stop_display()
+                self.gameResult = "lost"
                 print(f"{winner} won!")
             case ("state", tag, csp): 
                 self.state.update_state(csp)
@@ -105,6 +111,15 @@ class Client(BaseClient):
             case _:
                 print(f"Unable to parse message: {msg}")
                 # TODO do we gracefully exit here, what else would we do
+
+    def final_state(self):
+        match self.gameResult:
+            case "won":
+                self.display.tie_state()
+            case "lost":
+                self.display.tie_state()
+            case "draw":
+                self.display.tie_state()
 
 if __name__ == "__main__":
     print("RUNNING CODE (WATCH OUT)")   

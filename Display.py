@@ -4,7 +4,7 @@ import math
 from queue import Queue
 
 FPS = 60
-CARD_DIR = './card_pngs/'
+CARD_DIR = './images/card_pngs/'
 HIGHLIGHT_COLOR = (180, 0, 180)
 
 class Display():
@@ -33,6 +33,10 @@ class Display():
 
         self.clock = pygame.time.Clock()
         self.running = True
+
+
+    def __del__(self):
+        pygame.quit()
 
     def __layout_to_cards_rects(self, layout):
         layout = [pygame.image.load(CARD_DIR + str(card) + '.png') \
@@ -162,5 +166,8 @@ class Display():
         surf, rect = self.remove_border(highlights, border_idx)
         screen.blit(surf, rect)
 
-
-
+    def tie_state(self):
+        image = pygame.image.load("./images/trophy.png").convert_alpha()
+        rect  = image.get_rect(center = (self.width // 2, self.height // 2))
+        self.screen.blit(image, rect)
+        pygame.display.flip()
