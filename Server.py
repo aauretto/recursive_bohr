@@ -104,8 +104,8 @@ class Server(BaseServer):
                                             playAction.layoutIdx, 
                                             playAction.midPileIdx)
 
-        if self.gameState.game_over():
-            if winnerId := self.gamestate.get_winner():
+        if self.state.game_over():
+            if winnerId := self.state.get_winner():
                 winner = self.__winner_from_id(winnerId)
                 self.__stop_game("winner", data=winner)
             else: # Draw
