@@ -54,7 +54,8 @@ class Client(BaseClient):
         """
         while self.__keepGoing:
             msg = self.msgQueue.get(block=True)
-            self.tx_message(msg)
+            if msg:
+                self.tx_message(msg)
 
     def __spawn_sender(self):
         """

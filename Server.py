@@ -103,6 +103,12 @@ class Server(BaseServer):
         validMove = self.state.play_card(clientIdx, 
                                             playAction.layoutIdx, 
                                             playAction.midPileIdx)
+        if validMove:
+            self.broadcast_gamestate("new")
+        else:
+            self.tx_message(client, 
+                            ("bad-move", 
+                            self.__package_gamestate(client)))
 
         if self.state.game_over():
             if winnerId := self.state.get_winner():
@@ -110,15 +116,7 @@ class Server(BaseServer):
                 self.__stop_game("winner", data=winner)
             else: # Draw
                 self.__stop_game("draw")
-
-        else: # Handle the play that was made
-            if validMove:
-                self.broadcast_gamestate("new")
-            else:
-                self.tx_message(client, 
-                                ("bad-move", 
-                                self.__package_gamestate(client)))
-
+            
 
     def handle_connection(self):
         if len(self.currentPlayers) >= self.maxPlayers:

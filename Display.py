@@ -63,6 +63,7 @@ class Display():
 
     def stop_display(self):
         self.running = False
+        self.msgQueue.put(None)
 
     def run(self):
         # Tells us which cards are selected
@@ -93,7 +94,6 @@ class Display():
                 (surf, rect) = highlights[selectedIdx]
                 self.screen.blit(surf, rect)
             elif selectedIdx is not None:
-                print("Turning off")
                 self.remove_border_from(self.screen, highlights, selectedIdx)
                 selectedIdx = None
 
