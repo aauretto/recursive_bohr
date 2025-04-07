@@ -160,7 +160,7 @@ class Server(BaseServer):
         client: socket.socket
             The socket of the player who won
         """
-        for client, clientDict in self.currentPlayers:
+        for client, clientDict in self.currentPlayers.items():
             if clientDict["id"] == id:
                 return client
 

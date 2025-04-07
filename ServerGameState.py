@@ -54,7 +54,7 @@ class ServerGameState:
         for i in range(numPlayers):
             new_deck = Deck()
             new_deck.shuffle()
-            new_deck.deal(40) # TODO: Delete once done debugging
+            # new_deck.deal(40) # TODO: Delete once done debugging
             self.players.append(Player(new_deck, i, layoutSize))
 
         # Create game piles from players' decks

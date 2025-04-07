@@ -1,3 +1,4 @@
+import time
 from IPCutils import *
 from SharedState import ClientState
 import threading
@@ -112,6 +113,7 @@ class Client(BaseClient):
                 # TODO do we gracefully exit here, what else would we do
 
     def stop_game(self):
+        time.sleep(0.050) # give pygame time to refresh last move
         self.__keepGoing = False
         self.display.stop_display() 
 
