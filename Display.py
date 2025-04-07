@@ -167,7 +167,10 @@ class Display():
         screen.blit(surf, rect)
 
     def final_state(self, result):
-        image = pygame.image.load(f"./images/{result}.png").convert_alpha()
+        # image = pygame.image.load(f"./images/{result}.png").convert_alpha()
+        image = pygame.image.load(f"./images/won.png").convert_alpha()
+        image.set_alpha(75)
+        image = pygame.transform.scale(image, (self.width // 2, self.height // 2))
         rect  = image.get_rect(center = (self.width // 2, self.height // 2))
         self.screen.blit(image, rect)
         pygame.display.flip()
