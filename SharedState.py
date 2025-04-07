@@ -57,6 +57,7 @@ class ClientState():
         """
         self.monitor = threading.Lock()
         self.__gameState = gameState
+        self.__hasData = False if gameState is None else True
 
     def update_state(self, newState):
         """
@@ -72,6 +73,11 @@ class ClientState():
         """
         with self.monitor:
             self.__gameState = newState
+            self.__hasData = False if newState is None else True
+
+    def has_data(self):
+        with self.monitor:
+            return self.__hasData
 
     def get_state(self):
         """
@@ -87,11 +93,14 @@ class ClientState():
             The cards in the center that players can play onto
         """
         with self.monitor:
+            if not self.__hasData:
+                return None, None, None
             myLayout    = self.__gameState.myLayout.copy()
             theirLayout = self.__gameState.theirLayout.copy()
             midPiles = self.__gameState.midPiles.copy()
-        
+
         return myLayout, theirLayout, midPiles
+        
     
     def __str__(self):
         return f"ClientState: {self.__gameState}"

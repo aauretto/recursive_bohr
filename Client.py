@@ -13,7 +13,7 @@ class Client(BaseClient):
         self.sock.settimeout(timeout)
         
         ### Initialize members
-        self.state = None
+        self.state = ClientState(None)
         self.name = name
         self.msgQueue = Queue()
 
@@ -43,7 +43,7 @@ class Client(BaseClient):
         # Join game lobby and get initial state
         self.__spawn_sender()
         
-        while not self.state:
+        while not self.state.has_data():
             self.rx_message()
         print(f'State received')
         self.__spawn_listener()
@@ -82,9 +82,7 @@ class Client(BaseClient):
             case ("game-stopped", "player-left", who):
                 ## Go-go-gadget display stuff
                 self.keepGoing = False
-            case ("state", 'initial', csp): 
-                self.state = ClientState(csp)
-            case ("state", 'new', csp): 
+            case ("state", tag, csp): 
                 self.state.update_state(csp)
             case ("name-request",):
                 self.tx_message(("player-name", self.name))
