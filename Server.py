@@ -92,14 +92,6 @@ class Server(BaseServer):
             if clientDict["id"] == id:
                 return client
 
-    def exclusive_broadcast(self, clientsToExclude, msg):
-        """
-        Broadcasts a message to all but clients in list clientsToExclude
-        """
-        for c in self.clients:
-            if c not in clientsToExclude:
-                self.tx_message(c, msg)
-
     def handle_play(self, client, playAction):
         clientIdx = self.currentPlayers[client]["id"]
         validMove = self.state.play_card(clientIdx, 

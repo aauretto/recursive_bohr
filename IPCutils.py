@@ -128,6 +128,14 @@ class BaseServer:
         for c in self.clients:
             self.tx_message(c, msg)
     
+    def exclusive_broadcast(self, clientsToExclude, msg):
+        """
+        Broadcasts a message to all but clients in list clientsToExclude
+        """
+        for c in self.clients:
+            if c not in clientsToExclude:
+                self.tx_message(c, msg)
+    
     def rx_message(self):
         """
         Blocks until we get a message from any client. Then calls handle_message

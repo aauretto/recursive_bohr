@@ -90,6 +90,7 @@ class Client(BaseClient):
             case ("game-stopped", "player-left", who):
                 ## Go-go-gadget display stuff
                 self.stop_game()
+                print(f"{who} left the game. Closing...")
             case ("game-stopped", "draw", _):
                 self.gameResult = "draw"
                 self.stop_game()
