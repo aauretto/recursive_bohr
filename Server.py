@@ -49,7 +49,7 @@ class Server(BaseServer):
         self.state = ServerGameState(numPlayers=numPlayers, 
                                      numGamePiles=numGamePiles, 
                                      layoutSize=layoutSize)
-
+        self.playerIsAnimating = [False] * numPlayers
         
     def start(self):
         """
@@ -129,6 +129,7 @@ class Server(BaseServer):
             The message recieved from the client
 
         """
+        print(msg)
         if self.serverStatus == ServerStatus.SETUP:
             # We only want to handle these types of messages in the SETUP phase
             match msg:
@@ -145,6 +146,17 @@ class Server(BaseServer):
                     self.handle_play(client, playAction)
                 case ("quitting",):
                     self.__stop_game("player-left", self.currentPlayers[client]['uname'])
+                case ("no-animations",):
+                    clientIdx = self.currentPlayers[client]["id"]
+                    self.playerIsAnimating[clientIdx] = False
+                    if not any(self.playerIsAnimating) and not self.state.moves_available():
+                        oldPiles = self.state.game_piles
+                        self.state.flip()
+                        newPiles = self.state.game_piles
+                        self.broadcast_message(("flip", oldPiles, newPiles))
+                        self.broadcast_gamestate("new-state")
+
+
 
     def __winner_from_id(self, id):
         """
@@ -183,7 +195,10 @@ class Server(BaseServer):
         
         # If the move is allowed we send the new gamestate back to everyone
         if validMove:
-            self.broadcast_gamestate("new")
+            self.exclusive_broadcast([client], ("move", "them", playAction.layoutIdx, "mid", playAction.midPileIdx))
+            self.tx_message(client, ("move", "me", playAction.layoutIdx, "mid", playAction.midPileIdx))
+            self.broadcast_gamestate("new-state")
+            self.playerIsAnimating[clientIdx] = True
         else:
             # Otherwise we tell the client they made a bad move
             self.tx_message(client, 
@@ -273,6 +288,7 @@ class Server(BaseServer):
             self.serverStatus = ServerStatus.STOPPED
             if reason == "winner":
                 # in this case, data == client socket that won
+                self.broadcast_gamestate("new-state")
                 self.exclusive_broadcast([data], ("game-stopped", "lost", self.currentPlayers[data]['uname']))
                 self.tx_message(data, ("game-stopped", "won", "CONGRATS!"))
             else:

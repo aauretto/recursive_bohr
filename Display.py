@@ -2,6 +2,7 @@ import pygame
 from SharedState import ClientState, PlayCardAction
 import math
 from queue import Queue
+from AnimationManager import *
 
 FPS = 60
 CARD_DIR = './images/card_pngs/'
@@ -15,40 +16,62 @@ class Display():
         pygame.display.set_caption("Spit")
         self.gameState = clientGame
         self.msgQueue = msgQueue
+        self.animationManager = AnimationManager()
 
         self.width = screenWidth
         self.height = screenHeight
         self.targetCardWidth = self.width // 10
+
+        self.nMidPiles = 2
+        self.nTheirPiles = 4
+        self.nMyPiles = 4
 
         self.vpos = {
                       "them" : self.height - (5 * (self.height)) // (5 + 1),
                       "me"   : self.height - (1 * (self.height)) // (5 + 1),
                       "mid"  : self.height - (3 * (self.height)) // (5 + 1),
                     }
+        
+        self.xpos = {
+                      "them" : [i * (self.width // (self.nTheirPiles + 1)) for i in range(1, self.nTheirPiles + 1)],
+                      "me"   : [i * (self.width // (self.nMyPiles + 1))    for i in range(1, self.nMyPiles + 1)],
+                      "mid"  : [i * (self.width // (self.nMidPiles + 1))   for i in range(1, self.nMidPiles + 1)],
+                    }
 
+        # Gets populated by card objects each pass of the run loop
+        self.cardObjs = {
+                          "them" : [],
+                          "me"   : [],
+                          "mid"  : [],
+                        }
 
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption(f"Spit!")
         self.backgroundColor = backgroundColor
 
-
         self.clock = pygame.time.Clock()
         self.running = True
-
 
     def __del__(self):
         pygame.quit()
 
-    def __layout_to_cards_rects(self, layout):
-        layout = [pygame.image.load(CARD_DIR + str(card) + '.png') \
-                  for card in layout]
-        layout = [pygame.transform.scale(card, 
-                            (card.get_width() // math.ceil(card.get_width() \
+    def __card_to_pygame_img(self, card):
+        img = pygame.image.load(CARD_DIR + str(card) + '.png')
+        img = pygame.transform.scale(img, 
+                             (img.get_width() // math.ceil(img.get_width() \
                                                 / self.targetCardWidth), 
-                             card.get_height() // math.ceil(card.get_width() \
-                                                / self.targetCardWidth))) \
-                  for card in layout]
-        return [(card, card.get_rect()) for card in layout]
+                             img.get_height() // math.ceil(img.get_width() \
+                                                / self.targetCardWidth)))
+        return img
+
+    def __update_layouts(self, layout, who):
+        imgs = list(map(self.__card_to_pygame_img, layout))
+        self.cardObjs[who] = [(card, card.get_rect()) for card in imgs]
+
+        for i in range(len(self.cardObjs[who])):
+            (card, cardRect) = self.cardObjs[who][i]
+            cardRect.center = (self.xpos[who][i], self.vpos[who])
+            self.screen.blit(card, cardRect)
 
     def get_ready(self, players):
         print(f"Players in session: {players}")
@@ -56,15 +79,34 @@ class Display():
         while ready.strip()[0].lower() != 'y':
             ready = input(f"{players} have joined. Are you ready (y/n): ")
         self.msgQueue.put(('ready',))
-        
-
     
-    def __place_cards(self, layout, who: str):
-        nPiles = len(layout)
-        xlocs = [i * (self.width // (nPiles + 1)) for i in range(1, nPiles + 1)]
-        for i, (card, cardRect) in enumerate(layout):
-            cardRect.center = (xlocs[i], self.vpos[who])
-            self.screen.blit(card, cardRect)
+    def flip_cards(self, oldPiles, newPiles, duration):
+        for i, (oldCard, newCard) in enumerate(zip(oldPiles, newPiles)):
+            # oldImg = self.__card_to_pygame_img(oldCard)
+            oldImg, _ = self.cardObjs["mid"][i]
+            newImg = self.__card_to_pygame_img(newCard)
+        
+            destYpos = self.vpos["mid"]
+            destXpos = self.xpos["mid"][i]
+
+            srcYpos = self.vpos["mid"]
+            srcXpos = (2 * i - 1) * self.width + 0.5 * self.width # put 0.5 self.widths outside screen
+
+            job = AnimationJob((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg, oldImg)
+            self.animationManager.register_job(job)
+
+    def move_card(self, src, srcPile, dest, destPile, duration):
+        # Calc start and end pos
+        srcYpos = self.vpos[src]
+        srcXpos = self.xpos[src][srcPile]
+
+        destYpos = self.vpos[dest]
+        destXpos = self.xpos[dest][destPile]
+
+        cardToMove, _ = self.cardObjs[src][srcPile]
+        cardToCover, _ = self.cardObjs[dest][destPile]
+        job = AnimationJob((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, cardToMove, cardToCover)
+        self.animationManager.register_job(job)
 
     def stop_display(self):
         self.running = False
@@ -77,18 +119,16 @@ class Display():
 
         while self.running:
             self.clock.tick(FPS)
+
+            # Draw BG
             self.screen.fill(self.backgroundColor)
 
             # Make and place the cards on the screen
             myLayout, theirLayout, midPiles, selectable, myCardsLeft, theirCardsLeft = self.gameState.get_state()
 
-            myLayout = self.__layout_to_cards_rects(myLayout)
-            theirLayout = self.__layout_to_cards_rects(theirLayout)
-            midPiles = self.__layout_to_cards_rects(midPiles)
-
-            self.__place_cards(myLayout, 'me')
-            self.__place_cards(theirLayout, 'them')
-            self.__place_cards(midPiles, 'mid')
+            self.__update_layouts(myLayout, "me")
+            self.__update_layouts(theirLayout, "them")
+            self.__update_layouts(midPiles, "mid")
 
             # Show cards left
             self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
@@ -96,7 +136,7 @@ class Display():
 
             # Handle visualization of player selecting a card
             highlights = []
-            for (_, rect) in myLayout:
+            for (_, rect) in self.cardObjs["me"]:
                 highlights.append(self.make_border(10, .5, rect, HIGHLIGHT_COLOR))
             
             if selected:
@@ -106,19 +146,25 @@ class Display():
                 self.remove_border_from(self.screen, highlights, selectedIdx)
                 selectedIdx = None
 
+            self.animationManager.step_jobs()
+
+            # Only want to flip when nothing is going on
+            if self.animationManager.all_animations_stopped():
+                self.msgQueue.put(("no-animations",))
+
             # Event Loop
-            for  event in pygame.event.get():
+            for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.msgQueue.put(("quitting",))
                     
                     self.running = False
 
-                # Start dragging when mouse button is pressed
+                # Select card when mouse button is pressed
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     print(f"Selected is {selected}")
                     
                     # Check if selecting one of our cards
-                    for i, (card, card_rect) in enumerate(myLayout):
+                    for i, (card, card_rect) in enumerate(self.cardObjs["me"]):
                         if card_rect.collidepoint(event.pos) and selectable[i]:  # Check if mouse is on one of our cards
                             if selected:
                                 # Turn off highlight
@@ -133,7 +179,7 @@ class Display():
 
                     if selected:
                         print(f"Else Case")
-                        for i, (card, card_rect) in enumerate(midPiles):
+                        for i, (card, card_rect) in enumerate(self.cardObjs["mid"]):
                             print(card_rect, event.pos)
                             if card_rect.collidepoint(event.pos):  # Check if mouse is on one of our cards
                                 selected = False

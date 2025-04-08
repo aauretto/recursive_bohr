@@ -85,6 +85,19 @@ class ServerGameState:
             self._gameOver = True
 
 
+    def moves_available(self):
+        for player in self.players:
+            for i in range(self.layoutSize):
+                if player.get_card(i) is not None:
+                    for middleCard in self.game_piles:
+                        if Card.are_adjacent(player.get_card(i), middleCard):
+                            return True 
+        return False
+
+    ### TODO AIDEN FIX THIS
+    def flip(self):
+        self.__validate_game_state()
+
     def __validate_game_state(self):
         """
         Function to check whether a game state is valid. Keeps dealing a
@@ -94,14 +107,9 @@ class ServerGameState:
         Declares a draw if each players' decks are empty and nobody can make a
         move
         """
-        isValid = False
-        for player in self.players:
-            for i in range(self.layoutSize):
-                if player.get_card(i) is not None:
-                    for middleCard in self.game_piles:
-                        if Card.are_adjacent(player.get_card(i), middleCard):
-                            isValid = True
-        if not isValid and not self.game_over():
+        if not self.moves_available() and not self.game_over():
+            # If all players can flip, flip a card, otherwise we need to wait to
+            # flip a card until players are ready to do so
             self.__deal_game_pile()
             self.__validate_game_state()
 
@@ -123,7 +131,7 @@ class ServerGameState:
                 self._winner = playerIndex
                 self._gameOver = True
                 return True
-            self.__validate_game_state()
+            # self.__validate_game_state()
             return True
         else:
             return False

@@ -103,17 +103,21 @@ class Client(BaseClient):
                 self.stop_game()
             case ("state", tag, csp): 
                 self.state.update_state(csp)
+            case ("move", srcLayout, srcIdx, destLayout, destIdx): 
+                self.display.move_card(srcLayout, srcIdx, destLayout, destIdx, 0.5)
+            case ("flip", oldPiles, newPiles): 
+                self.display.flip_cards(oldPiles, newPiles, 5)
             case ("name-request",):
                 self.tx_message(("player-name", self.name))
             case ("everybody-joined", players):
                 self.display.get_ready(players)
-                ## Go-go-gadget display stuff
+                ### Go-go-gadget display stuff
             case _:
                 print(f"Unable to parse message: {msg}")
                 # TODO do we gracefully exit here, what else would we do
 
     def stop_game(self):
-        time.sleep(0.050) # give pygame time to refresh last move
+        time.sleep(0.050) # give pygame time to refresh last move #TODO KILL
         self.__keepGoing = False
         self.display.stop_display() 
 
