@@ -103,7 +103,10 @@ class Display():
             destXpos = self.xpos["mid"][i]
 
             srcYpos = self.vpos["mid"]
-            srcXpos = (2 * i - 1) * self.width + 0.5 * self.width # put 0.5 self.widths outside screen
+            srcXpos = (self.width // 2) + (2 * i - 1) * 0.5 * (self.width + newImg.get_width())
+            
+            
+             # put 0.5 self.widths outside screen
 
             job = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg)
             holdJob = Animations.ShowImage(self.screen, oldImg, (destXpos, destYpos))
