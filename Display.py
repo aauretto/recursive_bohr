@@ -4,6 +4,7 @@ import math
 from queue import Queue
 from AnimationManager import *
 import Animations
+import os
 
 FPS = 60
 CARD_DIR = './images/card_pngs/'
@@ -17,14 +18,15 @@ class Display():
         pygame.display.set_caption("Spit")
         self.gameState = clientGame
         self.msgQueue = msgQueue
+        self.width = screenWidth
+        self.height = screenHeight
+        self.targetCardWidth = self.width // 10
 
         self.animationManager = AnimationManager()
         self.animationManager.create_topic("static", 0)
         self.animationManager.create_topic("dynamic", 1)
+        self.cardLookup = self.__create_card_img_dict()
 
-        self.width = screenWidth
-        self.height = screenHeight
-        self.targetCardWidth = self.width // 10
 
         self.nMidPiles = 2
         self.nTheirPiles = 4
@@ -68,6 +70,28 @@ class Display():
     def __del__(self):
         pygame.quit()
 
+    def __create_card_img_dict(self):
+        
+        """
+        Creates the dictionary cardLookup mapping card names (as strings) to
+        their pygame images (stored as Surfaces)
+
+        Parameters: None
+        
+        Returns
+        -------
+        cardDict: dict{str --> Surface}
+        """
+        fileList = os.listdir(CARD_DIR)
+        fileList = [f.strip(".png") for f in fileList]
+        cardDict = {}
+        for cardStr in fileList:
+            cardDict[cardStr] = self.__card_to_pygame_img(cardStr)
+        return cardDict
+            
+
+
+
     def __card_to_pygame_img(self, card):
         img = pygame.image.load(CARD_DIR + str(card) + '.png')
         img = pygame.transform.scale(img, 
@@ -78,7 +102,7 @@ class Display():
         return img
 
     def __update_layouts(self, layout, who):
-        imgs = list(map(self.__card_to_pygame_img, layout))
+        imgs = [self.cardLookup[str(c)] for c in layout]
         self.cardObjs[who] = [(card, card.get_rect()) for card in imgs]
 
         for i in range(len(self.cardObjs[who])):
@@ -88,6 +112,7 @@ class Display():
 
     def get_ready(self, players):
         print(f"Players in session: {players}")
+        pygame.display.set_caption(f"Playing Spit! with: {players}")
         ready = 'n'
         while ready.strip()[0].lower() != 'y':
             ready = input(f"{players} have joined. Are you ready (y/n): ")
@@ -95,9 +120,9 @@ class Display():
     
     def flip_cards(self, oldPiles, newPiles, duration):
         for i, (oldCard, newCard) in enumerate(zip(oldPiles, newPiles)):
-            # oldImg = self.__card_to_pygame_img(oldCard)
             oldImg, _ = self.cardObjs["mid"][i]
-            newImg = self.__card_to_pygame_img(newCard)
+            newImg = self.cardLookup[str(newCard)]
+            # newImg = self.__card_to_pygame_img(newCard)
         
             destYpos = self.vpos["mid"]
             destXpos = self.xpos["mid"][i]
