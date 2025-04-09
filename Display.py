@@ -16,7 +16,10 @@ class Display():
         pygame.display.set_caption("Spit")
         self.gameState = clientGame
         self.msgQueue = msgQueue
+
         self.animationManager = AnimationManager()
+        self.animationManager.create_topic("static", 0)
+        self.animationManager.create_topic("dynamic", 1)
 
         self.width = screenWidth
         self.height = screenHeight
@@ -92,7 +95,7 @@ class Display():
             srcYpos = self.vpos["mid"]
             srcXpos = (2 * i - 1) * self.width + 0.5 * self.width # put 0.5 self.widths outside screen
 
-            job = AnimationJob((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg, oldImg)
+            job = LinearMoveAnimation((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg, oldImg)
             self.animationManager.register_job(job)
 
     def move_card(self, src, srcPile, dest, destPile, duration):
@@ -105,8 +108,13 @@ class Display():
 
         cardToMove, _ = self.cardObjs[src][srcPile]
         cardToCover, _ = self.cardObjs[dest][destPile]
-        job = AnimationJob((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, cardToMove, cardToCover)
-        self.animationManager.register_job(job)
+        holdJob = StaticHoldAnimation((destXpos, destYpos), self.screen, cardToCover)
+        moveJob = LinearMoveAnimation((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, cardToMove)
+        moveJob.add_subordinate(holdJob)
+        self.animationManager.register_job(moveJob, "dynamic")
+        self.animationManager.register_job(holdJob, "static", DrawOrder.BEFORE)
+
+
 
     def stop_display(self):
         self.running = False
