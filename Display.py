@@ -140,7 +140,7 @@ class Display():
         # Tells us which cards are selected
         selected = False
         selectedIdx = None
-        self.msgQueue(("ready",))
+        self.msgQueue.put(("ready",))
 
         while self.running:
             self.clock.tick(FPS)
