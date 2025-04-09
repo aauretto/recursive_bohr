@@ -117,6 +117,13 @@ class Server(BaseServer):
         while self.serverStatus == ServerStatus.RUNNING:
             self.rx_message()
     
+    def __terminate_game(self):
+        if winnerId := self.state.get_winner():
+            winner = self.__winner_from_id(winnerId)
+            self.__stop_game("winner", data=winner)
+        else: # Draw
+            self.__stop_game("draw")
+    
     def handle_message(self, client, msg):
         """
         Handles what the server should do upon recieving a given message
@@ -149,15 +156,15 @@ class Server(BaseServer):
                 case ("no-animations",):
                     clientIdx = self.currentPlayers[client]["id"]
                     self.playerIsAnimating[clientIdx] = False
-                    if not any(self.playerIsAnimating) and not self.state.moves_available():
+                    if not any(self.playerIsAnimating) and not self.state.moves_available() and not self.state.game_over(): 
                         oldPiles = self.state.game_piles
                         self.state.flip()
                         newPiles = self.state.game_piles
                         self.broadcast_message(("flip", oldPiles, newPiles))
                         self.broadcast_gamestate("new-state")
-
-
-
+                    elif self.state.game_over():
+                        self.__terminate_game()
+                        
     def __winner_from_id(self, id):
         """
         Get the socket object of the winner from their id
@@ -207,12 +214,7 @@ class Server(BaseServer):
 
         # If the game is done (someone won or a draw) we handle that
         if self.state.game_over():
-            if winnerId := self.state.get_winner():
-                winner = self.__winner_from_id(winnerId)
-                self.__stop_game("winner", data=winner)
-            else: # Draw
-                self.__stop_game("draw")
-            
+            self.__terminate_game()
 
     def handle_connection(self):
         """

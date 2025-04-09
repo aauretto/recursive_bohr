@@ -10,6 +10,7 @@ class Player:
         self.deck = deck
         self.name = name
         self.id = id
+        deck.deal(40)
         self._layout = deck.deal(layoutSize)
 
     def get_layout(self):
@@ -111,6 +112,7 @@ class ServerGameState:
             # If all players can flip, flip a card, otherwise we need to wait to
             # flip a card until players are ready to do so
             self.__deal_game_pile()
+            print("recursing on validate gamestate")
             self.__validate_game_state()
 
     def __is_play_valid(self, playerIndex, layoutIndex, centerIndex):
