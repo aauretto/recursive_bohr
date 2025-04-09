@@ -77,7 +77,6 @@ class Client(BaseClient):
         """
         Spools up a sender thread
         """
-        self.tx_message(("no-animations",))
         self.sender = threading.Thread(target=self.__send_worker)
         self.sender.start()
 
