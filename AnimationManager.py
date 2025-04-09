@@ -128,6 +128,7 @@ class AnimationManager():
 
     def step_jobs(self):
         self.lastFrameJobCt = self.thisFrameJobCt
+        self.thisFrameJobCt = 0
         with self.jobLock:
             # Organize jobs in priority order
             topics = self.allTopics.values()
