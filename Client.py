@@ -33,19 +33,18 @@ class Client(BaseClient):
             print(f"Finished setup")
         else:
             raise UnableToConnectError(serverAddr, port)
-
-
+        
         self.run()
 
     def run(self):
         
         self.__spawn_sender()
-        self.__spawn_display_thread()
-        self.tx_message(("ready",))
+        self.__spawn_listener()
 
-        self.__listener_loop()
+        self.display.run()
         self.__keepGoing = False
         
+
         self.sender.join()
         self.listener.join()
         
@@ -81,7 +80,7 @@ class Client(BaseClient):
         self.sender = threading.Thread(target=self.__send_worker)
         self.sender.start()
 
-    def __listener_loop(self):
+    def __listener_worker(self):
         """
         Loop for listener.
         Listens for messages and updates state when it gets one.
@@ -89,9 +88,9 @@ class Client(BaseClient):
         while self.__keepGoing:
             self.rx_message()
 
-    def __spawn_display_thread(self):
-        self.display_thread = threading.Thread(target = self.display.run)
-        self.display_thread.start()
+    def __spawn_listener(self):
+        self.listener = threading.Thread(target = self.__listener_worker)
+        self.listener.start()
 
 
     def handle_message(self, msg):
@@ -111,7 +110,8 @@ class Client(BaseClient):
                 self.gameResult = "lost"
                 self.stop_game()
             case ("state", "initial", csp): 
-                self.display.set_initial(csp)
+                self.state.update_state(csp)
+                self.display.set_initial()
             case ("state", tag, csp): 
                 self.state.update_state(csp)
             case ("move", srcLayout, srcIdx, destLayout, destIdx): 
@@ -139,4 +139,4 @@ class Client(BaseClient):
 if __name__ == "__main__":
     print("RUNNING CODE (WATCH OUT)")   
     name = input('Player Name: ')
-    myCli = Client("localhost", 9000, name)
+    myCli = Client("10.243.100.155", 9000, name)
