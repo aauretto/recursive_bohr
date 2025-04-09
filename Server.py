@@ -77,6 +77,7 @@ class Server(BaseServer):
 
         # Give everyone the initial gamestate
         self.broadcast_gamestate('initial')
+        self.__flip_if_able()
 
         # Beign the game
         self.__loop()
@@ -156,15 +157,21 @@ class Server(BaseServer):
                 case ("no-animations",):
                     clientIdx = self.currentPlayers[client]["id"]
                     self.playerIsAnimating[clientIdx] = False
-                    if not any(self.playerIsAnimating) and not self.state.moves_available() and not self.state.game_over(): 
-                        oldPiles = self.state.game_piles
-                        self.state.flip()
-                        newPiles = self.state.game_piles
-                        self.broadcast_message(("flip", oldPiles, newPiles))
-                        self.broadcast_gamestate("new-state")
-                    elif self.state.game_over():
+                    if not self.__flip_if_able() and self.state.game_over(): 
                         self.__terminate_game()
-                        
+
+    def __flip_if_able(self):
+        if not any(self.playerIsAnimating) and not self.state.moves_available(): 
+            if not self.state.game_over():
+                oldPiles = self.state.game_piles
+                self.state.flip()
+                
+                newPiles = self.state.game_piles
+                self.broadcast_message(("flip", oldPiles, newPiles))
+                self.broadcast_gamestate("new-state")
+                return True
+        return False
+
     def __winner_from_id(self, id):
         """
         Get the socket object of the winner from their id

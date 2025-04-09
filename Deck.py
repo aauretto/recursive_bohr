@@ -10,7 +10,7 @@ class Deck():
         # create deck of 52 standard cards:
         for s in (Card.Suit.SPADES, Card.Suit.HEARTS, Card.Suit.CLUBS, Card.Suit.DIAMONDS):
             for r in range(1, 14):
-                self.theDeck.append(Card(r, s))
+                self.theDeck.append(Card(2, s)) #TODO FIX TO r
 
     def shuffle(self):
         random.shuffle(self.theDeck)

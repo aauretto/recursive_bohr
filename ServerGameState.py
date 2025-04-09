@@ -65,8 +65,8 @@ class ServerGameState:
             top_card = self.players[i % numPlayers].deal_card()
             self.game_piles.append(top_card)
 
-        # Make sure someone can play
-        self.__validate_game_state()
+        # # Make sure someone can play
+        # self.__validate_game_state()
 
     def __deal_game_pile(self):
         """
@@ -112,8 +112,8 @@ class ServerGameState:
             # If all players can flip, flip a card, otherwise we need to wait to
             # flip a card until players are ready to do so
             self.__deal_game_pile()
-            print("recursing on validate gamestate")
-            self.__validate_game_state()
+            # print("recursing on validate gamestate")
+            # self.__validate_game_state()
 
     def __is_play_valid(self, playerIndex, layoutIndex, centerIndex):
         """

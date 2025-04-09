@@ -49,6 +49,12 @@ class Display():
                           "mid"  : [],
                         }
 
+        # Populate initial game state
+        myLayout, theirLayout, midPiles, _, _, _ = self.gameState.get_state()
+        self.__update_layouts(myLayout, "me")
+        self.__update_layouts(theirLayout, "them")
+        self.__update_layouts(midPiles, "mid")
+
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption(f"Spit!")
         self.backgroundColor = backgroundColor

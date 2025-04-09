@@ -28,7 +28,6 @@ class Client(BaseClient):
         self.sock.settimeout(None)
 
         if self.__keepGoing:
-            self.display = Display(self.state, self.msgQueue)
             self.__setup()
             print(f"Finished setup")
         else:
@@ -51,6 +50,7 @@ class Client(BaseClient):
         while not self.state.has_data():
             self.rx_message()
         print(f'State received')
+        self.display = Display(self.state, self.msgQueue)
         self.__spawn_listener()
 
     def __send_worker(self):
