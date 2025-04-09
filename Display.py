@@ -63,7 +63,7 @@ class Display():
         self.backgroundColor = backgroundColor
 
         self.clock = pygame.time.Clock()
-        self.running = False
+        self.running = True
 
     def set_initial(self):
         myLayout, theirLayout, midPiles, _, _, _ = self.gameState.get_state()
@@ -171,6 +171,7 @@ class Display():
         # Tells us which cards are selected
         selected = False
         selectedIdx = None
+        self.msgQueue(("ready",))
 
         while self.running:
             self.clock.tick(FPS)

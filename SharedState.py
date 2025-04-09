@@ -95,7 +95,12 @@ class ClientState():
         """
         with self.monitor:
             if not self.__hasData:
-                return None, None, None, None, None
+                ### TODO: FIx magic numbers
+                myDeckSize = 4
+                theirDeckSize = 4
+                midPiles = 2
+                return [None] * myDeckSize, [None] * theirDeckSize, [None] * midPiles, [False] * myDeckSize, myDeckSize, theirDeckSize
+                # return None, None, None, None, None, None
             myLayout    = self.__gameState.myLayout.copy()
             theirLayout = self.__gameState.theirLayout.copy()
             midPiles = self.__gameState.midPiles.copy()
