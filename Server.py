@@ -74,6 +74,8 @@ class Server(BaseServer):
         # Give everyone the initial gamestate
         self.broadcast_gamestate('initial')
 
+        self.__flip_if_able()
+
         # Beign the game
         self.__loop()
 
@@ -164,6 +166,7 @@ class Server(BaseServer):
                 newPiles = self.state.game_piles
                 self.broadcast_message(("flip", oldPiles, newPiles))
                 self.broadcast_gamestate("new-state")
+                self.playerIsAnimating = [True] * len(self.playerIsAnimating)
                 return True
         return False
 
