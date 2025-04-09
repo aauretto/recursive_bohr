@@ -3,6 +3,7 @@ from SharedState import ClientState, PlayCardAction
 import math
 from queue import Queue
 from AnimationManager import *
+import Animations
 
 FPS = 60
 CARD_DIR = './images/card_pngs/'
@@ -95,8 +96,8 @@ class Display():
             srcYpos = self.vpos["mid"]
             srcXpos = (2 * i - 1) * self.width + 0.5 * self.width # put 0.5 self.widths outside screen
 
-            job = LinearMoveAnimation((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg)
-            holdJob = StaticHoldAnimation((destXpos, destYpos), self.screen, oldImg)
+            job = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg)
+            holdJob = Animations.ShowImage(self.screen, oldImg, (destXpos, destYpos))
             job.add_subordinate(holdJob)
             self.animationManager.register_job(job, "dynamic")
             self.animationManager.register_job(holdJob, "static")
@@ -111,8 +112,8 @@ class Display():
 
         cardToMove, _ = self.cardObjs[src][srcPile]
         cardToCover, _ = self.cardObjs[dest][destPile]
-        holdJob = StaticHoldAnimation((destXpos, destYpos), self.screen, cardToCover)
-        moveJob = LinearMoveAnimation((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, cardToMove)
+        holdJob = Animations.ShowImage(self.screen, cardToCover, (destXpos, destYpos))
+        moveJob = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, cardToMove)
         moveJob.add_subordinate(holdJob)
         self.animationManager.register_job(moveJob, "dynamic")
         self.animationManager.register_job(holdJob, "static", DrawOrder.BEFORE)

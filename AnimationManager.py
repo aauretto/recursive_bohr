@@ -1,76 +1,6 @@
 import pygame
-import time
 import threading
 from enum import Enum
-
-
-class StaticHoldAnimation():
-    """
-    Just put an image somewhere until someone kills us
-    """
-    def __init__(self, pos, screen, image):
-        self.finished = False
-        self.pos = pos
-        self.image = image
-        self.rect = image.get_rect(center = pos)
-        self.screen = screen
-        self.subordinates = []
-
-    def step(self):
-        self.screen.blit(self.image, self.rect)
-
-    def finish(self):
-        self.finished = True
-        for s in self.subordinates:
-            s.finish()
-
-class LinearMoveAnimation():
-    """
-    Symbolic representation of moving a card from one position to another.
-    """
-    def __init__(self, startPos, endPos, duration, screen, cardToMove):
-        self.finished = False
-        self.startPos = startPos
-        self.endPos   = endPos
-        
-        self.cardToMove  = cardToMove
-        self.rect        = cardToMove.get_rect(center = startPos)
-        self.screen      = screen
-
-        self.duration  = duration
-        self.startTime = None
-
-        # Jobs to kill when we finish
-        self.subordinates = []
-
-    def add_subordinate(self, job):
-        self.subordinates.append(job)
-
-    def finish(self):
-        self.finished = True
-        for s in self.subordinates:
-            s.finish()
-
-    def step(self):
-        """
-        Advance this animation by one timestep
-        """
-        # Start job at time of first tick 
-        if not self.startTime:
-            self.startTime = time.time()
-
-        elapsed = time.time() - self.startTime
-        prog    = min(elapsed / self.duration, 1) # Percent through animation
-
-        # Update pos
-        newX = self.startPos[0] + (self.endPos[0] - self.startPos[0]) * prog
-        newY = self.startPos[1] + (self.endPos[1] - self.startPos[1]) * prog
-
-        self.rect.center = (newX, newY)
-        self.screen.blit(self.cardToMove, self.rect)
-
-        if prog >= 1:
-            self.finish()
 
 class DrawOrder(Enum):
     BEFORE = 0
@@ -97,7 +27,6 @@ class Topic():
     def remove_finished(self):
         self.jobs = list(filter(lambda j : not j.finished, self.jobs))
             
-
 class AnimationManager():
     def __init__(self):
         self.jobLock = threading.Lock()
@@ -125,7 +54,6 @@ class AnimationManager():
         with self.jobLock:
             self.allTopics[topic].register_job(job, drawOrder)
             
-
     def step_jobs(self):
         self.lastFrameJobCt = self.thisFrameJobCt
         self.thisFrameJobCt = 0
