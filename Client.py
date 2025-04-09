@@ -106,7 +106,7 @@ class Client(BaseClient):
             case ("move", srcLayout, srcIdx, destLayout, destIdx): 
                 self.display.move_card(srcLayout, srcIdx, destLayout, destIdx, 0.5)
             case ("flip", oldPiles, newPiles): 
-                self.display.flip_cards(oldPiles, newPiles, 5)
+                self.display.flip_cards(oldPiles, newPiles, 1)
             case ("name-request",):
                 self.tx_message(("player-name", self.name))
             case ("everybody-joined", players):

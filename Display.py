@@ -96,7 +96,7 @@ class Display():
             srcXpos = (2 * i - 1) * self.width + 0.5 * self.width # put 0.5 self.widths outside screen
 
             job = LinearMoveAnimation((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg)
-            holdJob = StaticHoldAnimation((destXpos, destYpos), self.screen, oldCard)
+            holdJob = StaticHoldAnimation((destXpos, destYpos), self.screen, oldImg)
             job.add_subordinate(holdJob)
             self.animationManager.register_job(job, "dynamic")
             self.animationManager.register_job(holdJob, "static")
