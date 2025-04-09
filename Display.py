@@ -95,8 +95,11 @@ class Display():
             srcYpos = self.vpos["mid"]
             srcXpos = (2 * i - 1) * self.width + 0.5 * self.width # put 0.5 self.widths outside screen
 
-            job = LinearMoveAnimation((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg, oldImg)
-            self.animationManager.register_job(job)
+            job = LinearMoveAnimation((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg)
+            holdJob = StaticHoldAnimation((destXpos, destYpos), self.screen, oldCard)
+            job.add_subordinate(holdJob)
+            self.animationManager.register_job(job, "dynamic")
+            self.animationManager.register_job(holdJob, "static")
 
     def move_card(self, src, srcPile, dest, destPile, duration):
         # Calc start and end pos
@@ -113,8 +116,6 @@ class Display():
         moveJob.add_subordinate(holdJob)
         self.animationManager.register_job(moveJob, "dynamic")
         self.animationManager.register_job(holdJob, "static", DrawOrder.BEFORE)
-
-
 
     def stop_display(self):
         self.running = False
