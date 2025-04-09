@@ -8,6 +8,24 @@ from queue import Queue
 
 class Client(BaseClient):
     def __init__(self, serverAddr, port, name, timeout=5):
+        """
+        Constructor for the Client class
+
+        Parameters
+        ----------
+        serverAddr: str
+            The IPv4 address of the server to connect to as a string
+        port: int
+            The port the server is running on
+        name: str
+            The name of the client
+        timeout: int
+            The time (seconds) to wait to connect to the server
+
+        Returns
+        -------
+        : Client
+        """
         # When we call this, only input is on pygame screen
         super().__init__()
         # Set timeout for connecting to the server
@@ -36,6 +54,9 @@ class Client(BaseClient):
         self.run()
 
     def run(self):
+        """
+        Runs the game
+        """
         self.display.run()
         self.__keepGoing = False
         self.sender.join()
@@ -44,6 +65,10 @@ class Client(BaseClient):
             self.display.final_state(self.gameResult)
 
     def __setup(self):
+        """
+        Initializes the client to be ready to play the game, spawing
+        listener and sender threads
+        """
         # Join game lobby and get initial state
         self.__spawn_sender()
         
@@ -82,11 +107,27 @@ class Client(BaseClient):
             self.rx_message()
 
     def __spawn_listener(self):
+        """
+        Spawns and starts the listener thread
+        """
         self.listener = threading.Thread(target = self.__listener_worker)
         self.listener.start()
 
 
     def handle_message(self, msg):
+        """
+        Determines what the client should do upon recieving a message from the 
+        server
+
+        Parameters
+        ----------
+        msg: any
+            The message received from the server
+
+        Returns
+        -------
+        None
+        """
         print(f"Client received {msg}")
         match msg:
             case ("game-stopped", "player-left", who):
@@ -118,6 +159,9 @@ class Client(BaseClient):
                 # TODO do we gracefully exit here, what else would we do
 
     def stop_game(self):
+        """
+        TODO make this better / get rid
+        """
         time.sleep(0.050) # give pygame time to refresh last move #TODO KILL
         self.__keepGoing = False
         self.display.stop_display() 

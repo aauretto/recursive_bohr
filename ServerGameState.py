@@ -2,27 +2,90 @@ from Card import Card
 from Deck import Deck
 
 class Player:
-    def __init__(self, deck, id, name="Simon Webber", layoutSize=4):
+    def __init__(self, deck, id, layoutSize=4):
         """
-        Constructor creates a Player from a given deck, id, and name
-        The Player's deck is then dealt into a layout of size LayoutSize
+        Constructor for Player class used by ServerGameState. Also deals out
+        the Player's initial layout
+        
+        Parameters
+        ----------
+        deck: Deck
+            Deck for the player to start with
+        id: int
+            Integer id for the player
+        layoutSize: int
+            Number of cards to deal out from Deck into the player's layout
+        
+        Returns
+        -------
+        Player
         """
         self.deck = deck
-        self.name = name
         self.id = id
         self._layout = deck.deal(layoutSize)
 
     def get_layout(self):
+        """
+        Returns the player's full layout
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        : list(Card)
+            The list of Cards in the Player's layout
+        """
         return self._layout
 
-    # def attemptPlay(index): DONT KNOW WHAT ATTEMPT PLAY DOES HERES GETCARD
     def deal_card(self):
+        """
+        Removes and returns the top card of the Player's Deck
+
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        : Card
+            The Card dealt from the Player's Deck
+        """
         return self.deck.deal(1)[0]
 
     def get_card(self, index):
+        """
+        Gets the card at a given index the Player's layout
+
+        Parameters
+        ----------
+        index: int
+            Index of the desired card in the Player's layout
+        
+        Returns
+        -------
+        : Card
+            The Card at that index in the Player's layout
+        """
         return self._layout[index]
     
     def play_card(self, layoutIndex):
+        """
+        Takes the card off of a given index from the Player's layout and
+        replaces it with the next Card on the Player's Deck (or None if the
+        Deck is empty)
+
+        Parameters
+        ----------
+        layoutIndex: int
+            The index of the layout that the Card to remove is stored at
+        
+        Returns
+        -------
+        : Card
+            The Card removed from the Player's layout
+        """
         card = self._layout[layoutIndex]
         try:
             self._layout[layoutIndex] = self.deck.deal(1)[0]
@@ -31,6 +94,14 @@ class Player:
         return card
 
     def cards_left(self):
+        """
+        Returns the number of cards left in the Player's Deck
+        
+        Returns
+        -------
+        : int
+            The number of cards left in the Deck
+        """
         return len(self.deck)
 
     

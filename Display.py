@@ -13,21 +13,48 @@ FONT_SIZE = 30
 
 class Display():
     def __init__(self, clientGame: ClientState, msgQueue: Queue, screenWidth = 1000, screenHeight = 800, backgroundColor=(30, 92, 58)):
+        """
+        A constructor for the display object
+
+        Parameters
+        ----------
+        clientGame: ClientState
+            The ClientState object from which we can access the relevant game
+            information that we need
+        msgQueue: Queue
+            The queue onto which we push any information not handled by us
+        screenWidth: int
+            The width in pixels of the pygame screen the game will apear on
+        screenHeight: int
+            The height in pixels of the pygame screen the game will apear on
+        
+        """
+
+        # Initialize pygame if it wasn't already and set a default caption
         if not pygame.get_init():
             pygame.init()
         pygame.display.set_caption("Spit")
+
+        # Set the passed parameters to internal state variables
         self.gameState = clientGame
         self.msgQueue = msgQueue
         self.width = screenWidth
         self.height = screenHeight
+        self.backgroundColor = backgroundColor
+
+        # Set the target width of the cards to 1/10th the screen width
         self.targetCardWidth = self.width // 10
 
+        # Create state variables to handle animations
         self.animationManager = AnimationManager()
         self.animationManager.create_topic("static", 0)
         self.animationManager.create_topic("dynamic", 1)
+
+        # Creates the dictionary we use to get pygame card images and put them
+        # on the screen
         self.cardLookup = self.__create_card_img_dict()
 
-
+        # TODO fix these
         self.nMidPiles = 2
         self.nTheirPiles = 4
         self.nMyPiles = 4
@@ -53,21 +80,25 @@ class Display():
 
         # Populate initial game state
         
-
+        # Initialize the pygame screen the game will be plyed on
         self.screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption(f"Spit!")
-        self.backgroundColor = backgroundColor
 
         self.clock = pygame.time.Clock()
         self.running = True
 
     def set_initial(self):
+        """
+        Used to initialize the member layouts the first time
+        """
         myLayout, theirLayout, midPiles, _, _, _ = self.gameState.get_state()
         self.__update_layouts(myLayout, "me")
         self.__update_layouts(theirLayout, "them")
         self.__update_layouts(midPiles, "mid")
 
     def __del__(self):
+        """
+        Destructor to gracefully close pygame
+        """
         pygame.quit()
 
     def __create_card_img_dict(self):
@@ -93,6 +124,20 @@ class Display():
 
 
     def __card_to_pygame_img(self, card):
+        """
+        Converts a card into a pygame image of the card
+
+        Parameters
+        ----------
+        card: str | Card
+            The card to load as an image
+
+        Returns
+        -------
+        img: pygame.Surface
+            the pygame image of the card scaled so the width is as close to the 
+            target width as possible
+        """
         img = pygame.image.load(CARD_DIR + str(card) + '.png')
         img = pygame.transform.scale(img, 
                              (img.get_width() // math.ceil(img.get_width() \
@@ -102,6 +147,21 @@ class Display():
         return img
 
     def __update_layouts(self, layout, who):
+        """
+        Update the internal layout
+
+        Parameters
+        ----------
+        layout: list(Card)
+            The list of card objects in the relevant layout
+        who: str
+            Which layout we are talking about
+
+        Return
+        ------
+        None
+        
+        """
         imgs = [self.cardLookup[str(c)] for c in layout]
         self.cardObjs[who] = [(card, card.get_rect()) for card in imgs]
 
@@ -111,6 +171,18 @@ class Display():
             self.screen.blit(card, cardRect)
 
     def get_ready(self, players):
+        """
+        Updates the pygame caption and waits for the player to be ready
+
+        Parameters
+        ----------
+        players: list(str)
+            The list of player names who are playing the game
+
+        Notes
+        -----
+            Tells the the server we are ready after the player indicates so
+        """
         print(f"Players in session: {players}")
         pygame.display.set_caption(f"Playing Spit! with: {players}")
         ready = 'n'
@@ -119,6 +191,14 @@ class Display():
         self.msgQueue.put(('ready',))
     
     def flip_cards(self, oldPiles, newPiles, duration):
+        """
+        Queues animation jobs surrounding how flipping from the decks to the
+        center piles is handled
+
+        Parameters
+        ----------
+        oldPiles: # TODO Aiden
+        """
         for i, (oldCard, newCard) in enumerate(zip(oldPiles, newPiles)):
             oldImg, _ = self.cardObjs["mid"][i]
             newImg = self.cardLookup[str(newCard)]
@@ -140,6 +220,27 @@ class Display():
             self.animationManager.register_job(holdJob, "static")
 
     def move_card(self, src, srcPile, dest, destPile, duration):
+        """
+        Moves a card from one pile onto another
+
+        Parameters
+        ----------
+        src: str
+            who owns the src piles
+        srcPile: int
+            The index of the source piles of the source card
+        dest: str
+            who own the destination piles
+        destPile: int
+            The index of the destination card in the destination piles
+        duration: float
+            The time in s the image takes to move from startPos to endPos
+
+        Returns
+        -------
+        None 
+        
+        """
         # Calc start and end pos
         srcYpos = self.vpos[src]
         srcXpos = self.xpos[src][srcPile]
@@ -156,10 +257,16 @@ class Display():
         self.animationManager.register_job(holdJob, "static", DrawOrder.BEFORE)
 
     def stop_display(self):
+        """
+        #TODO Aiden
+        """
         self.running = False
         self.msgQueue.put(None)
 
     def run(self):
+        """
+        Runs the display loop that accepts player interaction
+        """
         # Tells us which cards are selected
         selected = False
         selectedIdx = None
@@ -237,6 +344,16 @@ class Display():
             pygame.display.flip()
 
     def __show_cards(self, num, height):
+        """
+        Displays the count of cards left in a deck
+
+        Parameters
+        ----------
+        num: int
+            The number of cards remaining
+        height: int
+            The distance in pixels the center of the text will appear from the top of the screen
+        """
         # Set up font
 
         font = pygame.font.SysFont(None, FONT_SIZE)  # None = default font, 72 = size
@@ -260,6 +377,11 @@ class Display():
             An RGB tuple for the color of the rectangle
         width : int
             The border width
+
+        Returns
+        -------
+        surf, rect: (pygame.Surface, pygame.Rect)
+            The surface and associated rect of the highlight
         """
         surf = pygame.Surface((rect.w + rect_add, rect.h + rect_add), pygame.SRCALPHA)
         hl_rect = pygame.draw.rect(surf, color, (0, 0, rect.width + rect_add, rect.height + rect_add), width = width)  # Transparent center
@@ -267,6 +389,9 @@ class Display():
         return surf, hl_rect
 
     def remove_border(self, highlights, border_idx):
+        """
+        # TODO assess if we actually need this
+        """
         (_, rect) = highlights[border_idx]
         surf, rect = self.make_border(0, 0, rect, self.backgroundColor)
         return surf, rect
@@ -276,6 +401,18 @@ class Display():
         screen.blit(surf, rect)
 
     def final_state(self, result):
+        """
+        Used to display the final state of the game
+
+        Parameters
+        ----------
+        result: str
+            the result of the game {won, lost, draw}
+
+        Returns
+        -------
+        None
+        """
         # image = pygame.image.load(f"./images/{result}.png").convert_alpha()
         image = pygame.image.load(f"./images/won.png").convert_alpha()
         image.set_alpha(128)
