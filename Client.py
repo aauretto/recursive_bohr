@@ -19,6 +19,7 @@ class Client(BaseClient):
         self.msgQueue = Queue()
         self.gameResult = None
 
+        self.display = Display(self.state, self.msgQueue)
 
         ### Set up socket:
         # make connection and get start state
@@ -26,33 +27,40 @@ class Client(BaseClient):
 
         # Remove timeout for future communications
         self.sock.settimeout(None)
-
+        
         if self.__keepGoing:
-            self.__setup()
+            self.rx_message() # Should be a name-req
             print(f"Finished setup")
         else:
             raise UnableToConnectError(serverAddr, port)
-        
+
+
         self.run()
 
     def run(self):
-        self.display.run()
+        
+        self.__spawn_sender()
+        self.__spawn_display_thread()
+        self.tx_message(("ready",))
+
+        self.__listener_loop()
         self.__keepGoing = False
+        
         self.sender.join()
         self.listener.join()
+        
         if self.gameResult: # If we arent killed by user, show result
             self.display.final_state(self.gameResult)
 
-    def __setup(self):
-        # Join game lobby and get initial state
-        self.__spawn_sender()
+    # def __setup(self):
+    #     # Join game lobby and get initial state
+    #     self.__spawn_sender()
         
-        self.display = Display(self.state, self.msgQueue)
-        while not self.state.has_data():
-            self.rx_message()
-        print(f'State received')
-        self.display.set_initial()
-        self.__spawn_listener()
+    #     while not self.state.has_data():
+    #         self.rx_message()
+    #     print(f'State received')
+    #     self.display.set_initial()
+    #     self.__spawn_listener()
 
     def __send_worker(self):
         """
@@ -73,7 +81,7 @@ class Client(BaseClient):
         self.sender = threading.Thread(target=self.__send_worker)
         self.sender.start()
 
-    def __listener_worker(self):
+    def __listener_loop(self):
         """
         Loop for listener.
         Listens for messages and updates state when it gets one.
@@ -81,9 +89,9 @@ class Client(BaseClient):
         while self.__keepGoing:
             self.rx_message()
 
-    def __spawn_listener(self):
-        self.listener = threading.Thread(target = self.__listener_worker)
-        self.listener.start()
+    def __spawn_display_thread(self):
+        self.display_thread = threading.Thread(target = self.display.run)
+        self.display_thread.start()
 
 
     def handle_message(self, msg):
@@ -108,10 +116,14 @@ class Client(BaseClient):
                 self.display.move_card(srcLayout, srcIdx, destLayout, destIdx, 0.5)
             case ("flip", oldPiles, newPiles): 
                 self.display.flip_cards(oldPiles, newPiles, 1)
+            case ("ip-info", ip):
+                print(f"[Server] > Connected to {ip}")
+                self.tx_message(("player-name", self.name))
             case ("name-request",):
                 self.tx_message(("player-name", self.name))
             case ("everybody-joined", players):
-                self.display.get_ready(players)
+                print(f"Everyone has joined. Players in lobby: {players}")
+
                 ### Go-go-gadget display stuff
             case _:
                 print(f"Unable to parse message: {msg}")

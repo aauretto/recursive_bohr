@@ -65,15 +65,11 @@ class Server(BaseServer):
         while not self.__all_named():
             self.rx_message()
 
-        # Tell everyone that everyone connected
-        player_names = self.__player_names()
-        self.broadcast_message(("everybody-joined", player_names))
-
-        # Wait for everyone to say that they are ready
         while not self.__all_ready():
             self.rx_message()
 
         self.serverStatus = ServerStatus.RUNNING
+        self.broadcast_message(("everybody-joined", self.__player_names()))
 
         # Give everyone the initial gamestate
         self.broadcast_gamestate('initial')
@@ -236,6 +232,7 @@ class Server(BaseServer):
             self.currentPlayers[newClient] = {'id': len(self.currentPlayers),
                                               'status': ClientStatus.CONNECTED,
                                               'uname' : None}
+            self.tx_message(newClient, ("ip-info", get_ip()))
     
     def broadcast_gamestate(self, stateTag: str):
         """
