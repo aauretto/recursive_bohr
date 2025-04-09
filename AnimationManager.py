@@ -92,8 +92,10 @@ class Topic():
         for job in self.jobs:
             job.step()
         
-        self.jobs = list(filter(lambda j : not j.finished, self.jobs))
         return len(self.jobs) # TODO THIS IS GROSS
+    
+    def remove_finished(self):
+        self.jobs = list(filter(lambda j : not j.finished, self.jobs))
             
 
 class AnimationManager():
@@ -129,10 +131,13 @@ class AnimationManager():
         with self.jobLock:
             # Organize jobs in priority order
             topics = self.allTopics.values()
-            sorted(topics, key=lambda t : t.priority)
+            topics = sorted(topics, key=lambda t : t.priority)
 
             for topic in topics:
                 self.thisFrameJobCt += topic.step_jobs()
+            
+            for topic in topics:
+                topic.remove_finished()
                 
     def all_animations_stopped(self):
         """
