@@ -110,6 +110,8 @@ class Client(BaseClient):
             case ("game-stopped", "lost", winner):
                 self.gameResult = "lost"
                 self.stop_game()
+            case ("state", "initial", csp): 
+                self.display.set_initial(csp)
             case ("state", tag, csp): 
                 self.state.update_state(csp)
             case ("move", srcLayout, srcIdx, destLayout, destIdx): 
