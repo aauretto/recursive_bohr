@@ -15,13 +15,20 @@ class Display():
     def __init__(self, clientGame: ClientState, msgQueue: Queue, screenWidth = 1000, screenHeight = 800, backgroundColor=(30, 92, 58)):
         if not pygame.get_init():
             pygame.init()
-        pygame.display.set_caption("Spit")
         self.gameState = clientGame
         self.msgQueue = msgQueue
+
+        # Create animation manager that handles drawing and moving cards
+        self.animationManager = AnimationManager()
+        self.animationManager.create_topic("static", 0)
+        self.animationManager.create_topic("dynamic", 1)
+        self.cardLookup = self.__create_card_img_dict()
+
         self.width = screenWidth
         self.height = screenHeight
         self.targetCardWidth = self.width // 10
 
+        # Create animation manager that handles drawing and moving cards
         self.animationManager = AnimationManager()
         self.animationManager.create_topic("static", 0)
         self.animationManager.create_topic("dynamic", 1)
@@ -51,15 +58,12 @@ class Display():
                           "mid"  : [],
                         }
 
-        # Populate initial game state
-        
-
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption(f"Spit!")
         self.backgroundColor = backgroundColor
 
         self.clock = pygame.time.Clock()
-        self.running = True
+        self.running = False
 
     def set_initial(self):
         myLayout, theirLayout, midPiles, _, _, _ = self.gameState.get_state()
@@ -109,14 +113,6 @@ class Display():
             (card, cardRect) = self.cardObjs[who][i]
             cardRect.center = (self.xpos[who][i], self.vpos[who])
             self.screen.blit(card, cardRect)
-
-    def get_ready(self, players):
-        print(f"Players in session: {players}")
-        pygame.display.set_caption(f"Playing Spit! with: {players}")
-        ready = 'n'
-        while ready.strip()[0].lower() != 'y':
-            ready = input(f"{players} have joined. Are you ready (y/n): ")
-        self.msgQueue.put(('ready',))
     
     def flip_cards(self, oldPiles, newPiles, duration):
         for i, (oldCard, newCard) in enumerate(zip(oldPiles, newPiles)):
@@ -154,6 +150,18 @@ class Display():
         moveJob.add_subordinate(holdJob)
         self.animationManager.register_job(moveJob, "dynamic")
         self.animationManager.register_job(holdJob, "static", DrawOrder.BEFORE)
+
+    def show_first_frame(self):
+        # Make and place the cards on the screen
+        myLayout, theirLayout, midPiles, _, myCardsLeft, theirCardsLeft = self.gameState.get_state()
+
+        self.__update_layouts(myLayout, "me")
+        self.__update_layouts(theirLayout, "them")
+        self.__update_layouts(midPiles, "mid")
+
+        # Show cards left
+        self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
+        self.__show_cards(theirCardsLeft, FONT_SIZE)
 
     def stop_display(self):
         self.running = False
