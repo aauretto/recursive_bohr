@@ -50,10 +50,7 @@ class Display():
                         }
 
         # Populate initial game state
-        myLayout, theirLayout, midPiles, _, _, _ = self.gameState.get_state()
-        self.__update_layouts(myLayout, "me")
-        self.__update_layouts(theirLayout, "them")
-        self.__update_layouts(midPiles, "mid")
+        
 
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption(f"Spit!")
@@ -61,6 +58,12 @@ class Display():
 
         self.clock = pygame.time.Clock()
         self.running = True
+
+    def set_initial(self):
+        myLayout, theirLayout, midPiles, _, _, _ = self.gameState.get_state()
+        self.__update_layouts(myLayout, "me")
+        self.__update_layouts(theirLayout, "them")
+        self.__update_layouts(midPiles, "mid")
 
     def __del__(self):
         pygame.quit()

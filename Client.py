@@ -47,10 +47,11 @@ class Client(BaseClient):
         # Join game lobby and get initial state
         self.__spawn_sender()
         
+        self.display = Display(self.state, self.msgQueue)
         while not self.state.has_data():
             self.rx_message()
         print(f'State received')
-        self.display = Display(self.state, self.msgQueue)
+        self.display.set_initial()
         self.__spawn_listener()
 
     def __send_worker(self):
