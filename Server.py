@@ -73,7 +73,6 @@ class Server(BaseServer):
 
         # Give everyone the initial gamestate
         self.broadcast_gamestate('initial')
-        self.__flip_if_able()
 
         # Beign the game
         self.__loop()

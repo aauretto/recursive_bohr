@@ -99,7 +99,7 @@ class ClientState():
                 myDeckSize = 4
                 theirDeckSize = 4
                 midPiles = 2
-                return [None] * myDeckSize, [None] * theirDeckSize, [None] * midPiles, [False] * myDeckSize, myDeckSize, theirDeckSize
+                return [None] * myDeckSize, [None] * theirDeckSize, [None] * midPiles, [False] * myDeckSize, 0, 0
                 # return None, None, None, None, None, None
             myLayout    = self.__gameState.myLayout.copy()
             theirLayout = self.__gameState.theirLayout.copy()
