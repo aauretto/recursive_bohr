@@ -160,20 +160,19 @@ class Server(BaseServer):
 
     def __flip_if_able(self):
         if not any(self.playerIsAnimating) and not self.state.moves_available():
-            print("Can flip")
-            oldPiles = self.state.game_piles
-            self.state.flip()
             
-            newPiles = self.state.game_piles
-            self.broadcast_message(("flip", oldPiles, newPiles))
+            playersFlipped = self.state.flip()
+            cardsToFlip = [c for (i, c) in enumerate(self.state.game_piles) if i in playersFlipped]
+
+            self.broadcast_message(("flip", cardsToFlip, playersFlipped))
             self.broadcast_gamestate("new-state")
             self.playerIsAnimating = [True] * len(self.playerIsAnimating)
             return True
         return False
 
-    def __winner_from_id(self, id):
+    def __client_from_id(self, id):
         """
-        Get the socket object of the winner from their id
+        Get the socket object of the winnerfrom their id
 
         Parameters
         ----------

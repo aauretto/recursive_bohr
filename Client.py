@@ -119,8 +119,8 @@ class Client(BaseClient):
                 self.state.update_state(csp)
             case ("move", srcLayout, srcIdx, destLayout, destIdx): 
                 self.display.move_card(srcLayout, srcIdx, destLayout, destIdx, 0.5)
-            case ("flip", oldPiles, newPiles): 
-                self.display.flip_cards(oldPiles, newPiles, 1)
+            case ("flip", cards, pileIdxs): 
+                self.display.flip_cards(cards, pileIdxs, 1)
             case ("ip-info", ip):
                 print(f"[Server] > Connected to {ip}")
                 self.tx_message(("player-name", self.name))

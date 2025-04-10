@@ -69,14 +69,18 @@ class ServerGameState:
     def __deal_game_pile(self):
         """
         Deals out a card from each player's deck to the game piles 
+
+        Returns list of idxs for players that flipped
         """
-        print("Trying to deal a card")
+        flippedPlayers = []
         for i in range(len(self.players)):
             if not self.players[i].deck.is_empty():
                 print(f"Dealt a card form player {i}")
                 dealtArray = self.players[i].deck.deal(1)
                 self.game_piles[i] = dealtArray[0]
-
+                flippedPlayers.append(i)
+        return flippedPlayers
+    
     def moves_available(self):
         for player in self.players:
             for i in range(self.layoutSize):
@@ -88,24 +92,16 @@ class ServerGameState:
 
     ### TODO AIDEN FIX THIS
     def flip(self):
-        self.__validate_game_state()
-
-    def __validate_game_state(self):
         """
-        Function to check whether a game state is valid. Keeps dealing a
-        card from each players' decks to the game pile until a valid gamestate
-        is reached
-
-        Declares a draw if each players' decks are empty and nobody can make a
-        move
+        Function to flip card onto midpiles. Returns idxs of players that 
+        flipped
         """
         (gameOver, _) = self.game_over()
         if not self.moves_available() and not gameOver:
             # If all players can flip, flip a card, otherwise we need to wait to
             # flip a card until players are ready to do so
-            self.__deal_game_pile()
-            # print("recursing on validate gamestate")
-            # self.__validate_game_state()
+            return self.__deal_game_pile()
+        return []
 
     def __is_play_valid(self, playerIndex, layoutIndex, centerIndex):
         """
