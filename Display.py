@@ -114,21 +114,20 @@ class Display():
             cardRect.center = (self.xpos[who][i], self.vpos[who])
             self.screen.blit(card, cardRect)
     
-    def flip_cards(self, oldPiles, newPiles, duration):
-        for i, (oldCard, newCard) in enumerate(zip(oldPiles, newPiles)):
-            oldImg, _ = self.cardObjs["mid"][i]
-            newImg = self.cardLookup[str(newCard)]
-            # newImg = self.__card_to_pygame_img(newCard)
+    def flip_cards(self, cards, pileIdxs, duration):
+        for (card, pileIdx) in zip(cards, pileIdxs):
+
+            oldImg, _ = self.cardObjs["mid"][pileIdx]
+            newImg = self.__card_to_pygame_img(card)
         
             destYpos = self.vpos["mid"]
-            destXpos = self.xpos["mid"][i]
+            destXpos = self.xpos["mid"][pileIdx]
 
+            # Comes in from left or right?
+            sideParity = round(pileIdx / max(self.nMidPiles)) * 2 - 1
             srcYpos = self.vpos["mid"]
-            srcXpos = (self.width // 2) + (2 * i - 1) * 0.5 * (self.width + newImg.get_width())
+            srcXpos = (self.width // 2) + sideParity * 0.5 * (self.width + newImg.get_width())
             
-            
-             # put 0.5 self.widths outside screen
-
             job = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg)
             holdJob = Animations.ShowImage(self.screen, oldImg, (destXpos, destYpos))
             job.add_subordinate(holdJob)
