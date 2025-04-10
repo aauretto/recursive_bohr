@@ -124,7 +124,7 @@ class Display():
             destXpos = self.xpos["mid"][pileIdx]
 
             # Comes in from left or right?
-            sideParity = round(pileIdx / max(self.nMidPiles)) * 2 - 1
+            sideParity = -1 if pileIdx < self.nMidPiles / 2 else 1
             srcYpos = self.vpos["mid"]
             srcXpos = (self.width // 2) + sideParity * 0.5 * (self.width + newImg.get_width())
             
