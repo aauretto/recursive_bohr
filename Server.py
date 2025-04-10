@@ -49,7 +49,7 @@ class Server(BaseServer):
         self.state = ServerGameState(numPlayers=numPlayers, 
                                      numGamePiles=numGamePiles, 
                                      layoutSize=layoutSize)
-        self.playerIsAnimating = [False] * numPlayers
+        self.playerIsAnimating = [True] * numPlayers
         
     def start(self):
         """
@@ -72,9 +72,7 @@ class Server(BaseServer):
         self.broadcast_message(("everybody-joined", self.__player_names()))
 
         # Give everyone the initial gamestate
-        self.broadcast_gamestate('initial')
-
-        self.__flip_if_able()
+        self.broadcast_gamestate('initial')        
 
         # Beign the game
         self.__loop()
@@ -115,8 +113,8 @@ class Server(BaseServer):
         while self.serverStatus == ServerStatus.RUNNING:
             self.rx_message()
     
-    def __terminate_game(self):
-        if winnerId := self.state.get_winner():
+    def __terminate_game(self, winnerId):
+        if winnerId:
             winner = self.__winner_from_id(winnerId)
             self.__stop_game("winner", data=winner)
         else: # Draw
@@ -154,20 +152,23 @@ class Server(BaseServer):
                 case ("no-animations",):
                     clientIdx = self.currentPlayers[client]["id"]
                     self.playerIsAnimating[clientIdx] = False
-                    if not self.__flip_if_able() and self.state.game_over(): 
-                        self.__terminate_game()
+                    (gameOver, winnerId) = self.state.game_over()
+                    if gameOver:
+                        self.__terminate_game(winnerId)
+                    else:
+                        self.__flip_if_able()
 
     def __flip_if_able(self):
-        if not any(self.playerIsAnimating) and not self.state.moves_available(): 
-            if not self.state.game_over():
-                oldPiles = self.state.game_piles
-                self.state.flip()
-                
-                newPiles = self.state.game_piles
-                self.broadcast_message(("flip", oldPiles, newPiles))
-                self.broadcast_gamestate("new-state")
-                self.playerIsAnimating = [True] * len(self.playerIsAnimating)
-                return True
+        if not any(self.playerIsAnimating) and not self.state.moves_available():
+            print("Can flip")
+            oldPiles = self.state.game_piles
+            self.state.flip()
+            
+            newPiles = self.state.game_piles
+            self.broadcast_message(("flip", oldPiles, newPiles))
+            self.broadcast_gamestate("new-state")
+            self.playerIsAnimating = [True] * len(self.playerIsAnimating)
+            return True
         return False
 
     def __winner_from_id(self, id):
@@ -218,8 +219,9 @@ class Server(BaseServer):
                             self.__package_gamestate(client)))
 
         # If the game is done (someone won or a draw) we handle that
-        if self.state.game_over():
-            self.__terminate_game()
+        (gameOver, winnerId) = self.state.game_over()
+        if gameOver:
+            self.__terminate_game(winnerId)
 
     def handle_connection(self):
         """

@@ -41,9 +41,9 @@ class Client(BaseClient):
         self.__spawn_sender()
         self.__spawn_listener()
 
+        # Main Thread Handles Display
         self.display.run()
         self.__keepGoing = False
-        
 
         self.sender.join()
         self.listener.join()
@@ -112,6 +112,9 @@ class Client(BaseClient):
             case ("state", "initial", csp): 
                 self.state.update_state(csp)
                 self.display.set_initial()
+                # Makeshift countdown
+                time.sleep(3)
+                self.tx_message(("no-animations",))
             case ("state", tag, csp): 
                 self.state.update_state(csp)
             case ("move", srcLayout, srcIdx, destLayout, destIdx): 

@@ -46,8 +46,6 @@ class ServerGameState:
         by numPlayers.
         """
         
-        self._winner = None
-        self._gameOver = False
 
         # Create players
         self.players = []
@@ -71,20 +69,13 @@ class ServerGameState:
     def __deal_game_pile(self):
         """
         Deals out a card from each player's deck to the game piles 
-
-        Declares a draw if everyone's decks are empty 
         """
-        emptyDecks = 0
+        print("Trying to deal a card")
         for i in range(len(self.players)):
-            try:
+            if not self.players[i].deck.is_empty():
+                print(f"Dealt a card form player {i}")
                 dealtArray = self.players[i].deck.deal(1)
                 self.game_piles[i] = dealtArray[0]
-            except:
-                emptyDecks += 1
-
-        if emptyDecks == len(self.players):
-            self._gameOver = True
-
 
     def moves_available(self):
         for player in self.players:
@@ -108,7 +99,8 @@ class ServerGameState:
         Declares a draw if each players' decks are empty and nobody can make a
         move
         """
-        if not self.moves_available() and not self.game_over():
+        (gameOver, _) = self.game_over()
+        if not self.moves_available() and not gameOver:
             # If all players can flip, flip a card, otherwise we need to wait to
             # flip a card until players are ready to do so
             self.__deal_game_pile()
@@ -129,21 +121,23 @@ class ServerGameState:
         if (self.__is_play_valid(playerIndex, layoutIndex, centerIndex)):
             card = self.players[playerIndex].play_card(layoutIndex)
             self.game_piles[centerIndex] = card
-            if all(c is None for c in self.players[playerIndex].get_layout()):
-                self._winner = playerIndex
-                self._gameOver = True
-                return True
-            # self.__validate_game_state()
             return True
         else:
             return False
 
     def game_over(self):
-        return self._gameOver
 
-    def get_winner(self):
-        return self._winner    
-      
+        # no moves available AND all decks empty  => DRAW
+        if not self.moves_available() and all([p.deck.is_empty() for p in self.players]):
+            return (True, None)
+        else:
+            # OR one persons layout is empty AND their deck is empty => WINNER
+            for idx, player in enumerate(self.players): 
+                if all(c is None for c in player.get_layout()) and player.deck.is_empty():
+                    return (True, idx)
+            # Game is not over
+            return (False, None)
+            
     def get_player_info(self, playerIdx):
         player = self.players[playerIdx]
         return player.get_layout().copy(), self.players[playerIdx - 1].get_layout().copy(), self.game_piles.copy(), player.cards_left(), self.players[playerIdx - 1].cards_left()
