@@ -8,10 +8,10 @@ class Deck():
     def __init__(self):
         self.theDeck = []
 
+
         # create deck of 52 standard cards:
         for s in (Card.Suit.SPADES, Card.Suit.HEARTS, Card.Suit.CLUBS, Card.Suit.DIAMONDS):
             for r in range(1, 14):
-                self.theDeck.append(Card(r, s))
                 self.theDeck.append(Card(r, s)) #TODO FIX TO r
 
     def shuffle(self):
@@ -27,6 +27,10 @@ class Deck():
             raise EmptyDeckError("Deck is empty")
         self.theDeck = self.theDeck[numToDeal:]
         return toRet
+    
+    def is_empty(self):
+        return len(self) == 0
+
     
     def is_empty(self):
         return len(self) == 0
