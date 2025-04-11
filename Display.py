@@ -285,13 +285,14 @@ class Display():
 
         self.show_first_frame()
 
-        caption = "Playing Spit! with "
-        for i, name in enumerate(self.names):
-            caption += name
-            if i < len(self.names) - 1:
-                caption += ", "
+        if self.running:
+            caption = "Playing Spit! with "
+            for i, name in enumerate(self.names):
+                caption += name
+                if i < len(self.names) - 1:
+                    caption += ", "
         
-        pygame.display.set_caption(caption)
+            pygame.display.set_caption(caption)
 
         # ==========================================================
         # All initialization screen stuff should show up before here
