@@ -101,9 +101,27 @@ class Display():
         pygame.quit()
 
     def set_names(self, names):
+        """
+        Destructor to gracefully close pygame
+        """
         self.names = names
 
     def __create_card_img_dict(self):
+        """
+        Create the initial lookup dictionary for cards
+
+        Returns
+        -------
+        cardDict: dict{str -> pygame.Surface}
+        """
+        fileList = os.listdir(CARD_DIR)
+        fileList = [f.strip(".png") for f in fileList]
+        cardDict = {}
+        for cardStr in fileList:
+            cardDict[cardStr] = self.__card_to_pygame_img(cardStr)
+        return cardDict
+
+    def __card_to_pygame_img(self, card):
         """
         Converts a card into a pygame image of the card
 
@@ -118,17 +136,15 @@ class Display():
             the pygame image of the card scaled so the width is as close to the 
             target width as possible
         """
-        fileList = os.listdir(CARD_DIR)
-        fileList = [f.strip(".png") for f in fileList]
-        cardDict = {}
-        for cardStr in fileList:
-            cardDict[cardStr] = self.__card_to_pygame_img(cardStr)
-        return cardDict
-            
+        img = pygame.image.load(CARD_DIR + str(card) + '.png')
+        img = pygame.transform.scale(img, 
+                             (img.get_width() // math.ceil(img.get_width() \
+                                                / self.targetCardWidth), 
+                             img.get_height() // math.ceil(img.get_width() \
+                                                / self.targetCardWidth)))
+        return img
 
-
-
-    def __card_to_pygame_img(self, card):
+    def __update_layouts(self, layout, who):
         """
         Update the internal layout
 
@@ -144,15 +160,6 @@ class Display():
         None
         
         """
-        img = pygame.image.load(CARD_DIR + str(card) + '.png')
-        img = pygame.transform.scale(img, 
-                             (img.get_width() // math.ceil(img.get_width() \
-                                                / self.targetCardWidth), 
-                             img.get_height() // math.ceil(img.get_width() \
-                                                / self.targetCardWidth)))
-        return img
-
-    def __update_layouts(self, layout, who):
         imgs = [self.cardLookup[str(c)] for c in layout]
         self.cardObjs[who] = [(card, card.get_rect()) for card in imgs]
 
