@@ -77,9 +77,9 @@ class Client(BaseClient):
         while self.__keepGoing:
             msg = self.msgQueue.get(block=True)
             if msg:
+                self.__keepGoing = self.tx_message(msg)
                 if msg == ("quitting",):
                     self.__keepGoing = False
-                self.tx_message(msg)
 
 
     def __spawn_sender(self):
@@ -168,6 +168,10 @@ class Client(BaseClient):
                     # Makeshift countdown
                     print("DEBUG > GOT INITIAL")
                     self.msgQueue.put(("no-animations",))
+                case ("game-stopped", "player-left", who):
+                    ## Go-go-gadget display stuff
+                    self.stop_game()
+                    print(f"{who} left the game. Closing...")
                 case _:
                     print(f"Received message {msg} in READYING phase")
         elif self.status == Client.ClientStatus.PLAYING:

@@ -56,26 +56,18 @@ class Server(BaseServer):
         Starts up the server and run the game
         """
 
-        # Wait for enough players to be connected
-        while len(self.currentPlayers) < self.maxPlayers:
-            self.handle_connection()
-
-        # Request everyone's name and make sure everyone has a name
-        while not self.__all_named():
+        while self.serverStatus == Server.ServerStatus.SETUP:
             self.rx_message()
 
-        self.broadcast_message(("all-names", self.__player_names()))
-        while not self.__all_ready():
-            self.rx_message()
-
-        self.serverStatus = Server.ServerStatus.RUNNING
         for client in self.currentPlayers.keys():
             self.currentPlayers[client]['status'] = Server.ClientStatus.PLAYING
         # Give everyone the initial gamestate
-        self.broadcast_gamestate('initial')        
+        self.broadcast_gamestate('initial')   
 
         # Beign the game
         self.__loop()
+    def __enough_joined(self):
+        return len(self.currentPlayers) >= self.maxPlayers
 
     def __player_names(self):
         """
@@ -91,9 +83,9 @@ class Server(BaseServer):
         Returns
         -------
         bool
-            An indicator if every player has the READY status
+            An indicator if enough players have the READY status
         """
-        return all(map(lambda a : a["status"] == Server.ClientStatus.READY, self.currentPlayers.values()))
+        return all(map(lambda a : a["status"] == Server.ClientStatus.READY, self.currentPlayers.values())) and self.__enough_joined()
     
     def __all_named(self):
         """
@@ -109,7 +101,7 @@ class Server(BaseServer):
         Runs the game
         """
         ### TODO SOCKET TIMEOUT THINS
-        
+        print(f"Loop start status = {self.serverStatus}")
         while self.serverStatus == Server.ServerStatus.RUNNING:
             self.rx_message()
     
@@ -138,8 +130,15 @@ class Server(BaseServer):
             match msg:
                 case ("player-name", name):
                     self.currentPlayers[client]["uname"] = name
+                    if self.__all_named():
+                        self.broadcast_message(("all-names", self.__player_names()))
                 case ("ready",):
                     self.currentPlayers[client]['status'] = Server.ClientStatus.READY
+                    if self.__all_ready():
+                        print("Setting status to running")
+                        self.serverStatus = Server.ServerStatus.RUNNING
+                case ("quitting",):
+                    self.__stop_game("player-left", self.currentPlayers[client]['uname'])
                 case _:
                     print(f"Received message {msg} in SETUP phase")
         elif self.serverStatus == Server.ServerStatus.RUNNING:

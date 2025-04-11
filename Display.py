@@ -266,6 +266,7 @@ class Display():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
+                    self.running = False
                     self.msgQueue.put(("quitting",))
                     return
         print("Done showing initial frame")
