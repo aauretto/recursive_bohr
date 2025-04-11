@@ -25,7 +25,6 @@ class Client(BaseClient):
         self.name = name
         self.msgQueue = Queue()
         self.gameResult = None
-        self.gotOpponents = False
         self.status = Client.ClientStatus.SETUP
 
         self.display = Display(self.state, self.msgQueue)
@@ -37,8 +36,7 @@ class Client(BaseClient):
         # Remove timeout for future communications
         self.sock.settimeout(None)
 
-        while not self.gotOpponents:
-            self.rx_message()
+
         
         if self.__keepGoing:
             self.rx_message() # Should be a name-req
@@ -110,7 +108,6 @@ class Client(BaseClient):
                 case ("all-names", players):
                     print(f"Everyone has joined. Players in lobby: {players}")
                     self.display.set_names(players)
-                    self.gotOpponents = True
                 case ("state", "initial", csp): 
                     self.state.update_state(csp)
                     self.display.set_initial()
