@@ -141,6 +141,16 @@ class Client(BaseClient):
         """
         print(f"Client [{threading.get_ident()}] received {msg} | {self.status}")
         
+        # Messages that should be handled the same regardless of client status
+        match msg:
+            case ("game-stopped", "player-left", who):
+                    ## Go-go-gadget display stuff
+                    self.stop_game()
+                    print(f"{who} left the game. Closing...")
+            case _:
+                self.handle_state_specific_msg(msg)
+
+    def handle_state_specific_msg(self, msg):        
         if self.status == Client.ClientStatus.SETUP:
             match msg:
                 case ("ip-info", ip):
@@ -168,19 +178,10 @@ class Client(BaseClient):
                     # Makeshift countdown
                     print("DEBUG > GOT INITIAL")
                     self.msgQueue.put(("no-animations",))
-                case ("game-stopped", "player-left", who):
-                    ## Go-go-gadget display stuff
-                    self.stop_game()
-                    print(f"{who} left the game. Closing...")
                 case _:
                     print(f"Received message {msg} in READYING phase")
         elif self.status == Client.ClientStatus.PLAYING:
             match msg:
-                case ("game-stopped", "player-left", who):
-                    ## Go-go-gadget display stuff
-                    self.stop_game()
-                    print(f"{who} left the game. Closing...")
-
                 case ("game-stopped", "draw", _):
                     self.gameResult = "draw"
                     self.stop_game()
@@ -192,7 +193,6 @@ class Client(BaseClient):
                 case ("game-stopped", "lost", winner):
                     self.gameResult = "lost"
                     self.stop_game()
-
 
                 case ("state", "new", csp): 
                     self.state.update_state(csp)
@@ -222,4 +222,5 @@ class Client(BaseClient):
 if __name__ == "__main__":
     print("RUNNING CODE (WATCH OUT)")   
     name = input('Player Name: ')
-    myCli = Client("10.0.0.249", 9000, name)
+    # myCli = Client("10.0.0.249", 9000, name)
+    myCli = Client("localhost", 9000, name)
