@@ -46,8 +46,10 @@ class Client(BaseClient):
         self.msgQueue = Queue()
         self.gameResult = None
         self.status = Client.ClientStatus.SETUP
+        self.listenerSem = threading.Semaphore(0)
 
         self.display = Display(self.state, self.msgQueue)
+        self.__spawn_listener()
 
         ### Set up socket:
         # make connection and get start state
@@ -58,15 +60,15 @@ class Client(BaseClient):
         
         if self.__keepGoing:
             while self.status == Client.ClientStatus.SETUP:
-                self.rx_message() 
+                self.rx_message()
             print(f"Finished setup")
         else:
             raise UnableToConnectError(serverAddr, port)
         
-        self.tx_message(("ready", ))
-        while self.status == Client.ClientStatus.READYING:
-            self.rx_message()
-        
+        # Should be semaphore from listener thread
+        print("Waiting for playing Status")
+        self.listenerSem.acquire()
+
         self.run()
 
     def run(self):
@@ -74,7 +76,6 @@ class Client(BaseClient):
         Runs the game
         """
         self.__spawn_sender()
-        self.__spawn_listener()
 
         # Main Thread Handles Display
         self.display.run()
@@ -110,7 +111,9 @@ class Client(BaseClient):
         Loop for listener.
         Listens for messages and updates state when it gets one.
         """
+        self.listenerSem.acquire()
         while self.__keepGoing:
+            print(f"Listener looking for a message")
             self.rx_message()
 
     def __spawn_listener(self):
@@ -119,6 +122,7 @@ class Client(BaseClient):
         """
         self.listener = threading.Thread(target = self.__listener_worker)
         self.listener.start()
+        print("[DEBUG] > Created and started listener")
 
 
     def handle_message(self, msg):
@@ -135,22 +139,24 @@ class Client(BaseClient):
         -------
         None
         """
-        print(f"Client received {msg}")
+        print(f"Client [{threading.get_ident()}] received {msg} | {self.status}")
         
         if self.status == Client.ClientStatus.SETUP:
             match msg:
                 case ("ip-info", ip):
                     print(f"[Server] > Connected to {ip}")
-                    self.tx_message(("player-name", self.name))
+                    print(f"[Server] > Waiting for opponent to join...")
 
                 case ("name-request",):
-                    self.tx_message(("player-name", self.name))
+                    self.tx_message(("player-name", f"{threading.get_ident()}:"+self.name))
+                    self.listenerSem.release()
                     self.display.show_first_frame()
 
                 case ("all-names", players):
                     print(f"Everyone has joined. Players in lobby: {players}")
                     self.display.set_names(players)
                     self.status = Client.ClientStatus.READYING
+                    self.tx_message(("ready",))
                 case _:
                     print(f"Received message {msg} in SETUP phase")
 
@@ -159,9 +165,10 @@ class Client(BaseClient):
                 case ("state", "initial", csp): 
                     self.state.update_state(csp)
                     self.status = Client.ClientStatus.PLAYING
+                    self.display.done_setup()
                     # Makeshift countdown
                     print("DEBUG > GOT INITIAL")
-                    time.sleep(3)
+                    self.listenerSem.release()
                     self.tx_message(("no-animations",))
                 case _:
                     print(f"Received message {msg} in READYING phase")

@@ -5,6 +5,7 @@ from queue import Queue
 from AnimationManager import *
 import Animations
 import os
+from enum import Enum
 
 FPS = 60
 CARD_DIR = './images/card_pngs/'
@@ -12,6 +13,11 @@ HIGHLIGHT_COLOR = (180, 0, 180)
 FONT_SIZE = 30
 
 class Display():
+
+    class DisplayStatus(Enum):
+        SETUP = 0
+        RUNNING = 1
+
     def __init__(self, clientGame: ClientState, msgQueue: Queue, screenWidth = 1000, screenHeight = 800, backgroundColor=(30, 92, 58)):
         """
         A constructor for the display object
@@ -40,6 +46,7 @@ class Display():
         self.height = screenHeight
         self.targetCardWidth = self.width // 10
         self.names = None
+        self.status = Display.DisplayStatus.SETUP
 
         # Create animation manager that handles drawing and moving cards
         self.animationManager = AnimationManager()
@@ -230,6 +237,9 @@ class Display():
         self.animationManager.register_job(moveJob, "dynamic")
         self.animationManager.register_job(holdJob, "static", DrawOrder.BEFORE)
 
+    def done_setup(self):
+        self.status = Display.DisplayStatus.RUNNING
+
     def show_first_frame(self):
         # Make and place the cards on the screen
         myLayout, theirLayout, midPiles, _, myCardsLeft, theirCardsLeft = self.gameState.get_state()
@@ -243,7 +253,15 @@ class Display():
         self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
         self.__show_cards(theirCardsLeft, FONT_SIZE)
 
-        pygame.display.flip()
+        while self.status == Display.DisplayStatus.SETUP:
+            self.clock.tick(FPS)
+            pygame.display.flip()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    self.msgQueue.put(("quitting",))
+                    return
+        print("Done showing initial frame")
 
     def stop_display(self):
         """
