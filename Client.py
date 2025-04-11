@@ -16,6 +16,25 @@ class Client(BaseClient):
         PLAYING  = 2
 
     def __init__(self, serverAddr, port, name, timeout=5):
+        """
+         Constructor for the Client class
+ 
+         Parameters
+         ----------
+         serverAddr: str
+             The IPv4 address of the server to connect to as a string
+         port: int
+             The port the server is running on
+         name: str
+             The name of the client
+         timeout: int
+             The time (seconds) to wait to connect to the server
+ 
+         Returns
+         -------
+         : Client
+         """
+        
         # When we call this, only input is on pygame screen
         super().__init__()
         # Set timeout for connecting to the server
@@ -36,8 +55,6 @@ class Client(BaseClient):
 
         # Remove timeout for future communications
         self.sock.settimeout(None)
-
-
         
         if self.__keepGoing:
             while self.status == Client.ClientStatus.SETUP:
@@ -53,7 +70,9 @@ class Client(BaseClient):
         self.run()
 
     def run(self):
-        
+        """
+        Runs the game
+        """
         self.__spawn_sender()
         self.__spawn_listener()
 
@@ -95,11 +114,27 @@ class Client(BaseClient):
             self.rx_message()
 
     def __spawn_listener(self):
+        """
+        Spawns and starts the listener thread
+        """
         self.listener = threading.Thread(target = self.__listener_worker)
         self.listener.start()
 
 
     def handle_message(self, msg):
+        """
+        Determines what the client should do upon recieving a message from the 
+        server
+
+        Parameters
+        ----------
+        msg: any
+            The message received from the server
+
+        Returns
+        -------
+        None
+        """
         print(f"Client received {msg}")
         
         if self.status == Client.ClientStatus.SETUP:
@@ -167,6 +202,9 @@ class Client(BaseClient):
             print(f"Print in bad Client state while receiving {msg}")
 
     def stop_game(self):
+        """
+        TODO make this better / get rid
+        """
         time.sleep(0.050) # give pygame time to refresh last move #TODO KILL
         self.__keepGoing = False
         self.display.stop_display() 

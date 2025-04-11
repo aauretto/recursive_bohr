@@ -115,7 +115,7 @@ class Server(BaseServer):
     
     def __terminate_game(self, winnerId):
         if winnerId:
-            winner = self.__winner_from_id(winnerId)
+            winner = self.__client_from_id(winnerId)
             self.__stop_game("winner", data=winner)
         else: # Draw
             self.__stop_game("draw")
@@ -170,23 +170,23 @@ class Server(BaseServer):
             return True
         return False
 
-    # def __client_from_id(self, id): TODO remove?
-    #     """
-    #     Get the socket object of the winnerfrom their id
+    def __client_from_id(self, id):
+        """
+        Get the socket object of the winner from their id
 
-    #     Parameters
-    #     ----------
-    #     id: int
-    #         The id number of the player who won
+        Parameters
+        ----------
+        id: int
+            The id number of the player who won
 
-    #     Returns
-    #     -------
-    #     client: socket.socket
-    #         The socket of the player who won
-    #     """
-    #     for client, clientDict in self.currentPlayers.items():
-    #         if clientDict["id"] == id:
-    #             return client
+        Returns
+        -------
+        client: socket.socket
+            The socket of the player who won
+        """
+        for client, clientDict in self.currentPlayers.items():
+            if clientDict["id"] == id:
+                return client
 
     def handle_play(self, client, playAction):
         """
