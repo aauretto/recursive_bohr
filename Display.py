@@ -17,13 +17,6 @@ class Display():
             pygame.init()
         self.gameState = clientGame
         self.msgQueue = msgQueue
-
-        # Create animation manager that handles drawing and moving cards
-        self.animationManager = AnimationManager()
-        self.animationManager.create_topic("static", 0)
-        self.animationManager.create_topic("dynamic", 1)
-        self.cardLookup = self.__create_card_img_dict()
-
         self.width = screenWidth
         self.height = screenHeight
         self.targetCardWidth = self.width // 10
@@ -74,6 +67,9 @@ class Display():
     def __del__(self):
         pygame.quit()
 
+    def set_names(self, names):
+        self.names = names
+
     def __create_card_img_dict(self):
         
         """
@@ -118,7 +114,7 @@ class Display():
         for (card, pileIdx) in zip(cards, pileIdxs):
 
             oldImg, _ = self.cardObjs["mid"][pileIdx]
-            newImg = self.__card_to_pygame_img(card)
+            newImg = self.cardLookup[str(card)]
         
             destYpos = self.vpos["mid"]
             destXpos = self.xpos["mid"][pileIdx]
@@ -167,6 +163,8 @@ class Display():
         self.msgQueue.put(None)
 
     def run(self):
+        pygame.display.set_caption(f'Playing Spit! with {self.names}')
+
         # Tells us which cards are selected
         selected = False
         selectedIdx = None

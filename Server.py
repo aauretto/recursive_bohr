@@ -5,17 +5,17 @@ from functools import *
 from SharedState import ClientStatePackage, PlayCardAction
 import socket
 
-class ClientStatus(Enum):
-    CONNECTED = 0
-    READY     = 1
-    PLAYING   = 2 
-
-class ServerStatus(Enum):
-    SETUP   = 0
-    RUNNING = 1
-    STOPPED = 2
 
 class Server(BaseServer):
+    class ClientStatus(Enum):
+        CONNECTED = 0
+        READY     = 1
+        PLAYING   = 2 
+
+    class ServerStatus(Enum):
+        SETUP   = 0
+        RUNNING = 1
+        STOPPED = 2
     def __init__(self, host, port, numPlayers=2, numGamePiles=2, layoutSize=4):
         """
         Constructor for the Server class
@@ -44,7 +44,7 @@ class Server(BaseServer):
         # Maps clients to idx for checking moves in state
         self.currentPlayers = {}
         self.maxPlayers = numPlayers
-        self.serverStatus = ServerStatus.SETUP
+        self.serverStatus = Server.ServerStatus.SETUP
 
         self.state = ServerGameState(numPlayers=numPlayers, 
                                      numGamePiles=numGamePiles, 
@@ -65,12 +65,13 @@ class Server(BaseServer):
         while not self.__all_named():
             self.rx_message()
 
+        self.broadcast_message(("all-names", self.__player_names()))
         while not self.__all_ready():
             self.rx_message()
 
-        self.serverStatus = ServerStatus.RUNNING
-        self.broadcast_message(("everybody-joined", self.__player_names()))
-
+        self.serverStatus = Server.ServerStatus.RUNNING
+        for client in self.currentPlayers.keys():
+            self.currentPlayers[client]['status'] = Server.ClientStatus.PLAYING
         # Give everyone the initial gamestate
         self.broadcast_gamestate('initial')        
 
@@ -93,7 +94,7 @@ class Server(BaseServer):
         bool
             An indicator if every player has the READY status
         """
-        return all(map(lambda a : a["status"] == ClientStatus.READY, self.currentPlayers.values()))
+        return all(map(lambda a : a["status"] == Server.ClientStatus.READY, self.currentPlayers.values()))
     
     def __all_named(self):
         """
@@ -110,7 +111,7 @@ class Server(BaseServer):
         """
         ### TODO SOCKET TIMEOUT THINS
         
-        while self.serverStatus == ServerStatus.RUNNING:
+        while self.serverStatus == Server.ServerStatus.RUNNING:
             self.rx_message()
     
     def __terminate_game(self, winnerId):
@@ -133,16 +134,16 @@ class Server(BaseServer):
 
         """
         print(msg)
-        if self.serverStatus == ServerStatus.SETUP:
+        if self.serverStatus == Server.ServerStatus.SETUP:
             # We only want to handle these types of messages in the SETUP phase
             match msg:
                 case ("player-name", name):
                     self.currentPlayers[client]["uname"] = name
                 case ("ready",):
-                    self.currentPlayers[client]['status'] = ClientStatus.READY
+                    self.currentPlayers[client]['status'] = Server.ClientStatus.READY
                 case _:
-                    print(f"Non-ready msg received: {msg}")
-        elif self.serverStatus == ServerStatus.RUNNING:
+                    print(f"Received message {msg} in SETUP phase")
+        elif self.serverStatus == Server.ServerStatus.RUNNING:
             # Handle these messages while the game is running
             match msg:
                 case ("play", playAction):    
@@ -165,28 +166,28 @@ class Server(BaseServer):
             cardsToFlip = [c for (i, c) in enumerate(self.state.game_piles) if i in playersFlipped]
 
             self.broadcast_message(("flip", cardsToFlip, playersFlipped))
-            self.broadcast_gamestate("new-state")
+            self.broadcast_gamestate("new")
             self.playerIsAnimating = [True] * len(self.playerIsAnimating)
             return True
         return False
 
-    def __client_from_id(self, id):
-        """
-        Get the socket object of the winnerfrom their id
+    # def __client_from_id(self, id): TODO remove?
+    #     """
+    #     Get the socket object of the winnerfrom their id
 
-        Parameters
-        ----------
-        id: int
-            The id number of the player who won
+    #     Parameters
+    #     ----------
+    #     id: int
+    #         The id number of the player who won
 
-        Returns
-        -------
-        client: socket.socket
-            The socket of the player who won
-        """
-        for client, clientDict in self.currentPlayers.items():
-            if clientDict["id"] == id:
-                return client
+    #     Returns
+    #     -------
+    #     client: socket.socket
+    #         The socket of the player who won
+    #     """
+    #     for client, clientDict in self.currentPlayers.items():
+    #         if clientDict["id"] == id:
+    #             return client
 
     def handle_play(self, client, playAction):
         """
@@ -209,7 +210,7 @@ class Server(BaseServer):
         if validMove:
             self.exclusive_broadcast([client], ("move", "them", playAction.layoutIdx, "mid", playAction.midPileIdx))
             self.tx_message(client, ("move", "me", playAction.layoutIdx, "mid", playAction.midPileIdx))
-            self.broadcast_gamestate("new-state")
+            self.broadcast_gamestate("new")
             self.playerIsAnimating[clientIdx] = True
         else:
             # Otherwise we tell the client they made a bad move
@@ -233,7 +234,7 @@ class Server(BaseServer):
             # Otherwise accept the new connections and initialize them
             [newClient] = self.accept_connections()
             self.currentPlayers[newClient] = {'id': len(self.currentPlayers),
-                                              'status': ClientStatus.CONNECTED,
+                                              'status': Server.ClientStatus.CONNECTED,
                                               'uname' : None}
             self.tx_message(newClient, ("ip-info", get_ip()))
     
@@ -293,8 +294,8 @@ class Server(BaseServer):
         data: any
             the data to include in the message
         """
-        if self.serverStatus != ServerStatus.STOPPED:
-            self.serverStatus = ServerStatus.STOPPED
+        if self.serverStatus != Server.ServerStatus.STOPPED:
+            self.serverStatus = Server.ServerStatus.STOPPED
             if reason == "winner":
                 # in this case, data == client socket that won
                 self.broadcast_gamestate("new-state")

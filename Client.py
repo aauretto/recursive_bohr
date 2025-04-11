@@ -4,9 +4,16 @@ from SharedState import ClientState
 import threading
 from Display import Display
 from queue import Queue
+from enum import Enum
+
 
 
 class Client(BaseClient):
+
+    class ClientStatus(Enum):
+        SETUP   = 0
+        PLAYING = 1
+
     def __init__(self, serverAddr, port, name, timeout=5):
         # When we call this, only input is on pygame screen
         super().__init__()
@@ -18,6 +25,8 @@ class Client(BaseClient):
         self.name = name
         self.msgQueue = Queue()
         self.gameResult = None
+        self.gotOpponents = False
+        self.status = Client.ClientStatus.SETUP
 
         self.display = Display(self.state, self.msgQueue)
 
@@ -27,6 +36,9 @@ class Client(BaseClient):
 
         # Remove timeout for future communications
         self.sock.settimeout(None)
+
+        while not self.gotOpponents:
+            self.rx_message()
         
         if self.__keepGoing:
             self.rx_message() # Should be a name-req
@@ -50,16 +62,6 @@ class Client(BaseClient):
         
         if self.gameResult: # If we arent killed by user, show result
             self.display.final_state(self.gameResult)
-
-    # def __setup(self):
-    #     # Join game lobby and get initial state
-    #     self.__spawn_sender()
-        
-    #     while not self.state.has_data():
-    #         self.rx_message()
-    #     print(f'State received')
-    #     self.display.set_initial()
-    #     self.__spawn_listener()
 
     def __send_worker(self):
         """
@@ -95,44 +97,64 @@ class Client(BaseClient):
 
     def handle_message(self, msg):
         print(f"Client received {msg}")
-        match msg:
-            case ("game-stopped", "player-left", who):
-                ## Go-go-gadget display stuff
-                self.stop_game()
-                print(f"{who} left the game. Closing...")
-            case ("game-stopped", "draw", _):
-                self.gameResult = "draw"
-                self.stop_game()
-            case ("game-stopped", "won", _):
-                self.gameResult = "won"
-                self.stop_game()
-            case ("game-stopped", "lost", winner):
-                self.gameResult = "lost"
-                self.stop_game()
-            case ("state", "initial", csp): 
-                self.state.update_state(csp)
-                self.display.set_initial()
-                # Makeshift countdown
-                time.sleep(3)
-                self.tx_message(("no-animations",))
-            case ("state", tag, csp): 
-                self.state.update_state(csp)
-            case ("move", srcLayout, srcIdx, destLayout, destIdx): 
-                self.display.move_card(srcLayout, srcIdx, destLayout, destIdx, 0.5)
-            case ("flip", cards, pileIdxs): 
-                self.display.flip_cards(cards, pileIdxs, 1)
-            case ("ip-info", ip):
-                print(f"[Server] > Connected to {ip}")
-                self.tx_message(("player-name", self.name))
-            case ("name-request",):
-                self.tx_message(("player-name", self.name))
-            case ("everybody-joined", players):
-                print(f"Everyone has joined. Players in lobby: {players}")
+        
+        if self.status == Client.ClientStatus.SETUP:
+            match msg:
+                case ("ip-info", ip):
+                    print(f"[Server] > Connected to {ip}")
+                    self.tx_message(("player-name", self.name))
 
-                ### Go-go-gadget display stuff
-            case _:
-                print(f"Unable to parse message: {msg}")
-                # TODO do we gracefully exit here, what else would we do
+                case ("name-request",):
+                    self.tx_message(("player-name", self.name))
+
+                case ("all-names", players):
+                    print(f"Everyone has joined. Players in lobby: {players}")
+                    self.display.set_names(players)
+                    self.gotOpponents = True
+                case ("state", "initial", csp): 
+                    self.state.update_state(csp)
+                    self.display.set_initial()
+                    # Makeshift countdown
+                    time.sleep(3)
+                    self.tx_message(("no-animations",))
+                case _:
+                    print(f"Received message {msg} in SETUP phase")
+        elif self.status == Client.ClientStatus.PLAYING:
+            match msg:
+                case ("game-stopped", "player-left", who):
+                    ## Go-go-gadget display stuff
+                    self.stop_game()
+                    print(f"{who} left the game. Closing...")
+
+                case ("game-stopped", "draw", _):
+                    self.gameResult = "draw"
+                    self.stop_game()
+
+                case ("game-stopped", "won", _):
+                    self.gameResult = "won"
+                    self.stop_game()
+
+                case ("game-stopped", "lost", winner):
+                    self.gameResult = "lost"
+                    self.stop_game()
+
+
+                case ("state", "new", csp): 
+                    self.state.update_state(csp)
+
+                case ("move", srcLayout, srcIdx, destLayout, destIdx): 
+                    self.display.move_card(srcLayout, srcIdx, destLayout, destIdx, 0.5)
+
+                case ("flip", cards, pileIdxs): 
+                    self.display.flip_cards(cards, pileIdxs, 1)
+
+
+                    ### Go-go-gadget display stuff
+                case _:
+                    print(f"Unable to parse message: {msg} while PLAYING")
+                    # TODO do we gracefully exit here, what else would we do
+        else:
+            print(f"Print in bad Client state while receiving {msg}")
 
     def stop_game(self):
         time.sleep(0.050) # give pygame time to refresh last move #TODO KILL
@@ -142,4 +164,4 @@ class Client(BaseClient):
 if __name__ == "__main__":
     print("RUNNING CODE (WATCH OUT)")   
     name = input('Player Name: ')
-    myCli = Client("10.243.100.155", 9000, name)
+    myCli = Client("10.0.0.249", 9000, name)
