@@ -94,7 +94,7 @@ class Server(BaseServer):
         bool
             An indicator if every player has a user name      
         """
-        return all(map(lambda x: x['uname'] != None, self.currentPlayers.values()))
+        return all(map(lambda x: x['uname'] != None, self.currentPlayers.values())) and self.__enough_joined()
 
     def __loop(self):
         """

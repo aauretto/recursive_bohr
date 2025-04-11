@@ -148,7 +148,7 @@ class Client(BaseClient):
                     print(f"[Server] > Waiting for opponent to join...")
 
                 case ("name-request",):
-                    self.msgQueue.put(("player-name", f"{threading.get_ident()}:"+self.name))
+                    self.msgQueue.put(("player-name", self.name))
 
                 case ("all-names", players):
                     print(f"Everyone has joined. Players in lobby: {players}")
@@ -222,4 +222,4 @@ class Client(BaseClient):
 if __name__ == "__main__":
     print("RUNNING CODE (WATCH OUT)")   
     name = input('Player Name: ')
-    myCli = Client("localhost", 9000, name)
+    myCli = Client("10.0.0.249", 9000, name)
