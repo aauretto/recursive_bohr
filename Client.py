@@ -37,6 +37,7 @@ class Client(BaseClient):
         
         # When we call this, only input is on pygame screen
         super().__init__()
+        
         # Set timeout for connecting to the server
         self.sock.settimeout(timeout)
         
@@ -46,28 +47,12 @@ class Client(BaseClient):
         self.msgQueue = Queue()
         self.gameResult = None
         self.status = Client.ClientStatus.SETUP
-        self.listenerSem = threading.Semaphore(0)
+        self.__keepGoing = True 
 
         self.display = Display(self.state, self.msgQueue)
-        self.__spawn_listener()
 
-        ### Set up socket:
-        # make connection and get start state
-        self.__keepGoing = self.connect_to(serverAddr, port)
-
-        # Remove timeout for future communications
-        self.sock.settimeout(None)
-        
-        if self.__keepGoing:
-            while self.status == Client.ClientStatus.SETUP:
-                self.rx_message()
-            print(f"Finished setup")
-        else:
-            raise UnableToConnectError(serverAddr, port)
-        
-        # Should be semaphore from listener thread
-        print("Waiting for playing Status")
-        self.listenerSem.acquire()
+        self.__spawn_listener(serverAddr, port)
+        self.__spawn_sender()
 
         self.run()
 
@@ -75,8 +60,6 @@ class Client(BaseClient):
         """
         Runs the game
         """
-        self.__spawn_sender()
-
         # Main Thread Handles Display
         self.display.run()
         self.__keepGoing = False
@@ -106,21 +89,38 @@ class Client(BaseClient):
         self.sender = threading.Thread(target=self.__send_worker)
         self.sender.start()
 
-    def __listener_worker(self):
+    def __listener_worker(self, serverAddr, port):
         """
         Loop for listener.
         Listens for messages and updates state when it gets one.
         """
-        self.listenerSem.acquire()
+        ### Set up socket:
+        # make connection and get start state
+        self.__keepGoing = self.connect_to(serverAddr, port)
+
+        # Remove timeout for future communications
+        self.sock.settimeout(None)
+        
+        if self.__keepGoing:
+            while self.status == Client.ClientStatus.SETUP:
+                self.rx_message()
+            print(f"Finished setup")
+        else:
+            # Kill display here and main thread will terminate
+            self.display.stop_display()
+            self.display.done_setup()
+            raise UnableToConnectError(serverAddr, port)
+
+
         while self.__keepGoing:
             print(f"Listener looking for a message")
             self.rx_message()
 
-    def __spawn_listener(self):
+    def __spawn_listener(self, serverAddr, port):
         """
         Spawns and starts the listener thread
         """
-        self.listener = threading.Thread(target = self.__listener_worker)
+        self.listener = threading.Thread(target = self.__listener_worker, args = (serverAddr, port))
         self.listener.start()
         print("[DEBUG] > Created and started listener")
 
@@ -148,15 +148,14 @@ class Client(BaseClient):
                     print(f"[Server] > Waiting for opponent to join...")
 
                 case ("name-request",):
-                    self.tx_message(("player-name", f"{threading.get_ident()}:"+self.name))
-                    self.listenerSem.release()
-                    self.display.show_first_frame()
+                    self.msgQueue.put(("player-name", f"{threading.get_ident()}:"+self.name))
 
                 case ("all-names", players):
                     print(f"Everyone has joined. Players in lobby: {players}")
                     self.display.set_names(players)
                     self.status = Client.ClientStatus.READYING
-                    self.tx_message(("ready",))
+                    # Should go through msgQueue
+                    self.msgQueue.put(("ready",))
                 case _:
                     print(f"Received message {msg} in SETUP phase")
 
@@ -168,8 +167,7 @@ class Client(BaseClient):
                     self.display.done_setup()
                     # Makeshift countdown
                     print("DEBUG > GOT INITIAL")
-                    self.listenerSem.release()
-                    self.tx_message(("no-animations",))
+                    self.msgQueue.put(("no-animations",))
                 case _:
                     print(f"Received message {msg} in READYING phase")
         elif self.status == Client.ClientStatus.PLAYING:

@@ -281,8 +281,15 @@ class Display():
         """
         Runs the display loop that accepts player interaction
         """
+
+        self.show_first_frame()
+
         pygame.display.set_caption(f'Playing Spit! with {self.names}')
 
+        # ==========================================================
+        # All initialization screen stuff should show up before here
+        # ==========================================================
+        
         # Tells us which cards are selected
         selected = False
         selectedIdx = None
