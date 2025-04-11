@@ -59,13 +59,14 @@ class Server(BaseServer):
         while self.serverStatus == Server.ServerStatus.SETUP:
             self.rx_message()
 
-        for client in self.currentPlayers.keys():
-            self.currentPlayers[client]['status'] = Server.ClientStatus.PLAYING
-        # Give everyone the initial gamestate
-        self.broadcast_gamestate('initial')   
+        if self.serverStatus == Server.ServerStatus.RUNNING:
+            for client in self.currentPlayers.keys():
+                self.currentPlayers[client]['status'] = Server.ClientStatus.PLAYING
+            # Give everyone the initial gamestate
+            self.broadcast_gamestate('initial')   
 
-        # Beign the game
-        self.__loop()
+            # Beign the game
+            self.__loop()
     def __enough_joined(self):
         return len(self.currentPlayers) >= self.maxPlayers
 
@@ -124,7 +125,7 @@ class Server(BaseServer):
             The message recieved from the client
 
         """
-        print(msg)
+        print(f"<= Incoming {msg}")
         if self.serverStatus == Server.ServerStatus.SETUP:
             # We only want to handle these types of messages in the SETUP phase
             match msg:
