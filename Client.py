@@ -145,6 +145,7 @@ class Client(BaseClient):
 
                 case ("name-request",):
                     self.tx_message(("player-name", self.name))
+                    self.display.show_first_frame()
 
                 case ("all-names", players):
                     print(f"Everyone has joined. Players in lobby: {players}")
@@ -157,9 +158,9 @@ class Client(BaseClient):
             match msg:
                 case ("state", "initial", csp): 
                     self.state.update_state(csp)
-                    self.display.set_initial()
                     self.status = Client.ClientStatus.PLAYING
                     # Makeshift countdown
+                    print("DEBUG > GOT INITIAL")
                     time.sleep(3)
                     self.tx_message(("no-animations",))
                 case _:
@@ -212,4 +213,4 @@ class Client(BaseClient):
 if __name__ == "__main__":
     print("RUNNING CODE (WATCH OUT)")   
     name = input('Player Name: ')
-    myCli = Client("10.0.0.249", 9000, name)
+    myCli = Client("localhost", 9000, name)

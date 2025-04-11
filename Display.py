@@ -231,10 +231,10 @@ class Display():
         self.animationManager.register_job(holdJob, "static", DrawOrder.BEFORE)
 
     def show_first_frame(self):
-
         # Make and place the cards on the screen
         myLayout, theirLayout, midPiles, _, myCardsLeft, theirCardsLeft = self.gameState.get_state()
 
+        self.screen.fill(self.backgroundColor)
         self.__update_layouts(myLayout, "me")
         self.__update_layouts(theirLayout, "them")
         self.__update_layouts(midPiles, "mid")
@@ -242,6 +242,8 @@ class Display():
         # Show cards left
         self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
         self.__show_cards(theirCardsLeft, FONT_SIZE)
+
+        pygame.display.flip()
 
     def stop_display(self):
         """
