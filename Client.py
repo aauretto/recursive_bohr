@@ -77,8 +77,7 @@ class Client(BaseClient):
         while self.__keepGoing:
             msg = self.msgQueue.get(block=True)
             if msg:
-                self.__keepGoing = self.tx_message(msg)
-                if msg == ("quitting",):
+                if not self.tx_message(msg) or msg == ("quitting",):
                     self.__keepGoing = False
 
 
@@ -102,7 +101,7 @@ class Client(BaseClient):
         self.sock.settimeout(None)
         
         if self.__keepGoing:
-            while self.status == Client.ClientStatus.SETUP:
+            while self.status == Client.ClientStatus.SETUP and self.__keepGoing:
                 self.rx_message()
             print(f"Finished setup")
         else:
