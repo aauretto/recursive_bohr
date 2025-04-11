@@ -11,8 +11,9 @@ from enum import Enum
 class Client(BaseClient):
 
     class ClientStatus(Enum):
-        SETUP   = 0
-        PLAYING = 1
+        SETUP    = 0
+        READYING = 1
+        PLAYING  = 2
 
     def __init__(self, serverAddr, port, name, timeout=5):
         # When we call this, only input is on pygame screen
@@ -39,10 +40,15 @@ class Client(BaseClient):
 
         
         if self.__keepGoing:
-            self.rx_message() # Should be a name-req
+            while self.status == Client.ClientStatus.SETUP:
+                self.rx_message() 
             print(f"Finished setup")
         else:
             raise UnableToConnectError(serverAddr, port)
+        
+        self.tx_message(("ready", ))
+        while self.status == Client.ClientStatus.READYING:
+            self.rx_message()
         
         self.run()
 
@@ -108,14 +114,21 @@ class Client(BaseClient):
                 case ("all-names", players):
                     print(f"Everyone has joined. Players in lobby: {players}")
                     self.display.set_names(players)
+                    self.status = Client.ClientStatus.READYING
+                case _:
+                    print(f"Received message {msg} in SETUP phase")
+
+        elif self.status == Client.ClientStatus.READYING:
+            match msg:
                 case ("state", "initial", csp): 
                     self.state.update_state(csp)
                     self.display.set_initial()
+                    self.status = Client.ClientStatus.PLAYING
                     # Makeshift countdown
                     time.sleep(3)
                     self.tx_message(("no-animations",))
                 case _:
-                    print(f"Received message {msg} in SETUP phase")
+                    print(f"Received message {msg} in READYING phase")
         elif self.status == Client.ClientStatus.PLAYING:
             match msg:
                 case ("game-stopped", "player-left", who):

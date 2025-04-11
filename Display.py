@@ -20,6 +20,7 @@ class Display():
         self.width = screenWidth
         self.height = screenHeight
         self.targetCardWidth = self.width // 10
+        self.names = None
 
         # Create animation manager that handles drawing and moving cards
         self.animationManager = AnimationManager()
@@ -168,7 +169,6 @@ class Display():
         # Tells us which cards are selected
         selected = False
         selectedIdx = None
-        self.msgQueue.put(("ready",))
 
         while self.running:
             self.clock.tick(FPS)

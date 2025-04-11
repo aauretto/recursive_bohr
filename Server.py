@@ -61,7 +61,6 @@ class Server(BaseServer):
             self.handle_connection()
 
         # Request everyone's name and make sure everyone has a name
-        self.broadcast_message(('name-request',))
         while not self.__all_named():
             self.rx_message()
 
@@ -237,6 +236,7 @@ class Server(BaseServer):
                                               'status': Server.ClientStatus.CONNECTED,
                                               'uname' : None}
             self.tx_message(newClient, ("ip-info", get_ip()))
+            self.tx_message(newClient, ('name-request',))
     
     def broadcast_gamestate(self, stateTag: str):
         """
