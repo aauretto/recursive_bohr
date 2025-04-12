@@ -63,16 +63,6 @@ class BaseServer:
         self.sock.bind((self.host, self.port))
         self.sock.listen(qLen)
 
-
-
-    def __del__(self):
-        """
-        Destructor -- Close all connections
-        """
-        for c in self.clients:
-            c.close()
-        self.sock.close()
-
     def reject_connections(self, nConx = 1):
         """
         Rejects n connections from clients. Blocks until we get through all 
@@ -102,6 +92,7 @@ class BaseServer:
         """
         Destructor -- Close all connections
         """
+        print("delling")
         for c in self.clients:
             c.close()
         self.sock.close()
