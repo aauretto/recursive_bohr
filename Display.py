@@ -17,6 +17,7 @@ class Display():
     class DisplayStatus(Enum):
         SETUP = 0
         RUNNING = 1
+        STOPPING = 2
 
     def __init__(self, clientGame: ClientState, msgQueue: Queue, screenWidth = 1000, screenHeight = 800, backgroundColor=(30, 92, 58)):
         """
@@ -54,7 +55,6 @@ class Display():
         self.animationManager.create_topic("dynamic", 1)
         self.cardLookup = self.__create_card_img_dict()
 
-
         self.nMidPiles = 2
         self.nTheirPiles = 4
         self.nMyPiles = 4
@@ -83,7 +83,6 @@ class Display():
         self.backgroundColor = backgroundColor
 
         self.clock = pygame.time.Clock()
-        self.running = True
 
     def set_initial(self):
         """
@@ -266,7 +265,7 @@ class Display():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    self.running = False
+                    self.status = Display.DisplayStatus.STOPPING
                     self.msgQueue.put(("quitting",))
                     return
         print("Done showing initial frame")
@@ -275,7 +274,7 @@ class Display():
         """
         # TODO AIDEN
         """
-        self.running = False
+        self.status = Display.DisplayStatus.STOPPING
         self.msgQueue.put(None)
 
     def run(self):
@@ -285,7 +284,7 @@ class Display():
 
         self.show_first_frame()
 
-        if self.running:
+        if self.status != Display.DisplayStatus.STOPPING:
             caption = "Playing Spit! with "
             for i, name in enumerate(self.names):
                 caption += name
@@ -302,7 +301,7 @@ class Display():
         selected = False
         selectedIdx = None
 
-        while self.running:
+        while self.status != Display.DisplayStatus.STOPPING:
             self.clock.tick(FPS)
 
             # Draw BG
@@ -340,9 +339,10 @@ class Display():
             # Event Loop
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    # Stops sender and sends out quitting msg to server
                     self.msgQueue.put(("quitting",))
-                    
-                    self.running = False
+                    # TODO maybe call stop game
+                    self.status = Display.DisplayStatus.STOPPING
 
                 # Select card when mouse button is pressed
                 if event.type == pygame.MOUSEBUTTONDOWN:

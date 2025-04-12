@@ -14,6 +14,7 @@ class Client(BaseClient):
         SETUP    = 0
         READYING = 1
         PLAYING  = 2
+        STOPPING = 3
 
     def __init__(self, serverAddr, port, name, timeout=5):
         """
@@ -47,7 +48,6 @@ class Client(BaseClient):
         self.msgQueue = Queue()
         self.gameResult = None
         self.status = Client.ClientStatus.SETUP
-        self.__keepGoing = True 
 
         self.display = Display(self.state, self.msgQueue)
 
@@ -62,7 +62,7 @@ class Client(BaseClient):
         """
         # Main Thread Handles Display
         self.display.run()
-        self.__keepGoing = False
+        self.status = Client.ClientStatus.STOPPING
 
         self.sender.join()
         self.listener.join()
@@ -74,11 +74,11 @@ class Client(BaseClient):
         """
         Worker that sends game action messages to the server.
         """
-        while self.__keepGoing:
+        while self.status != Client.ClientStatus.STOPPING:
             msg = self.msgQueue.get(block=True)
             if msg:
                 if not self.tx_message(msg) or msg == ("quitting",):
-                    self.__keepGoing = False
+                    self.status = Client.ClientStatus.STOPPING
 
 
     def __spawn_sender(self):
@@ -95,24 +95,19 @@ class Client(BaseClient):
         """
         ### Set up socket:
         # make connection and get start state
-        self.__keepGoing = self.connect_to(serverAddr, port)
+        if not self.connect_to(serverAddr, port):
+            self.status = Client.ClientStatus.STOPPING
 
         # Remove timeout for future communications
         self.sock.settimeout(None)
         
-        if self.__keepGoing:
-            while self.status == Client.ClientStatus.SETUP and self.__keepGoing:
-                self.rx_message()
-            print(f"Finished setup")
-        else:
+        if self.status == Client.ClientStatus.STOPPING:
             # Kill display here and main thread will terminate
             self.display.stop_display()
-            self.display.done_setup()
-            raise UnableToConnectError(serverAddr, port)
+            raise UnableToConnectError(serverAddr, port) #TODO consider that this does not actually error ???
 
 
-        while self.__keepGoing:
-            print(f"Listener looking for a message")
+        while self.status != Client.ClientStatus.STOPPING:
             self.rx_message()
 
     def __spawn_listener(self, serverAddr, port):
@@ -215,7 +210,7 @@ class Client(BaseClient):
         TODO make this better / get rid
         """
         time.sleep(0.050) # give pygame time to refresh last move #TODO KILL
-        self.__keepGoing = False
+        self.status = Client.ClientStatus.STOPPING
         self.display.stop_display() 
 
 if __name__ == "__main__":
