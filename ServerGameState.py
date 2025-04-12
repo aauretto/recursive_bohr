@@ -218,6 +218,8 @@ class ServerGameState:
         : bool
             Indicator of whether or not a play is valid
         """
+        if self.game_over()[0]:
+            return False
         playerCard = self.players[playerIndex].get_card(layoutIndex)
         return playerCard and Card.are_adjacent(playerCard, 
                                                   self.game_piles[centerIndex])

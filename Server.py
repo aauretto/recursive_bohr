@@ -223,11 +223,6 @@ class Server(BaseServer):
                             ("bad-move", 
                             self.__package_gamestate(client)))
 
-        # If the game is done (someone won or a draw) we handle that
-        (gameOver, winnerId) = self.state.game_over()
-        if gameOver:
-            self.__terminate_game(winnerId)
-
     def handle_connection(self):
         """
         Handles a new connection to the server
