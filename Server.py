@@ -49,7 +49,6 @@ class Server(BaseServer):
         self.state = ServerGameState(numPlayers=numPlayers, 
                                      numGamePiles=numGamePiles, 
                                      layoutSize=layoutSize)
-        self.playerIsAnimating = [True] * numPlayers
         
     def start(self):
         """
@@ -151,22 +150,29 @@ class Server(BaseServer):
                     self.__stop_game("player-left", self.currentPlayers[client]['uname'])
                 case ("no-animations",):
                     clientIdx = self.currentPlayers[client]["id"]
-                    self.playerIsAnimating[clientIdx] = False
+                    self.currentPlayers[client]['animating'] = False
                     (gameOver, winnerId) = self.state.game_over()
                     if gameOver:
                         self.__terminate_game(winnerId)
                     else:
                         self.__flip_if_able()
 
+    def __any_animating(self):
+       return any([v['animating'] for v in self.currentPlayers.values()])
+    
+    def __make_all_animating(self):
+        for v in self.currentPlayers.values():
+            v['animating'] = True
+
     def __flip_if_able(self):
-        if not any(self.playerIsAnimating) and not self.state.moves_available():
+        if not self.__any_animating() and not self.state.moves_available():
             
             playersFlipped = self.state.flip()
             cardsToFlip = [c for (i, c) in enumerate(self.state.game_piles) if i in playersFlipped]
 
             self.broadcast_message(("flip", cardsToFlip, playersFlipped))
             self.broadcast_gamestate("new")
-            self.playerIsAnimating = [True] * len(self.playerIsAnimating)
+            self.__make_all_animating()
             return True
         return False
 
@@ -210,7 +216,7 @@ class Server(BaseServer):
             self.exclusive_broadcast([client], ("move", "them", playAction.layoutIdx, "mid", playAction.midPileIdx))
             self.tx_message(client, ("move", "me", playAction.layoutIdx, "mid", playAction.midPileIdx))
             self.broadcast_gamestate("new")
-            self.playerIsAnimating[clientIdx] = True
+            self.currentPlayers[client]['animating'] = True
         else:
             # Otherwise we tell the client they made a bad move
             self.tx_message(client, 
@@ -234,7 +240,8 @@ class Server(BaseServer):
             [newClient] = self.accept_connections()
             self.currentPlayers[newClient] = {'id': len(self.currentPlayers),
                                               'status': Server.ClientStatus.CONNECTED,
-                                              'uname' : None}
+                                              'uname' : None,
+                                              'animating': True}
             self.tx_message(newClient, ("ip-info", get_ip()))
             self.tx_message(newClient, ('name-request',))
     
