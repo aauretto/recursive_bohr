@@ -144,7 +144,19 @@ class Client(BaseClient):
             case _:
                 self.handle_state_specific_msg(msg)
 
-    def handle_state_specific_msg(self, msg):        
+    def handle_state_specific_msg(self, msg):      
+        """
+        Handles a message that only is applicable when in a certain state
+
+        Parameters
+        ----------
+        msg: any
+            The received message
+        
+        Returns
+        -------
+        None
+        """  
         if self.status == Client.ClientStatus.SETUP:
             match msg:
                 case ("ip-info", ip):
