@@ -209,12 +209,11 @@ class Client(BaseClient):
         """
         TODO make this better / get rid
         """
-        time.sleep(0.050) # give pygame time to refresh last move #TODO KILL
         self.status = Client.ClientStatus.STOPPING
         self.display.stop_display() 
 
 if __name__ == "__main__":
     print("RUNNING CODE (WATCH OUT)")   
     name = input('Player Name: ')
-    # myCli = Client("10.0.0.249", 9000, name)
-    myCli = Client("localhost", 9000, name)
+    myCli = Client("10.0.0.249", 9000, name)
+    # myCli = Client("10.0.0.138", 9000, name)
