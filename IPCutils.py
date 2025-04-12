@@ -92,7 +92,6 @@ class BaseServer:
         """
         Destructor -- Close all connections
         """
-        print("delling")
         for c in self.clients:
             c.close()
         self.sock.close()
