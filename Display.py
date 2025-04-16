@@ -37,8 +37,7 @@ class Display():
         
         """
  
-         # Initialize pygame if it wasn't already and set a default caption
-        
+         # Initialize pygame if it wasn't already
         if not pygame.get_init():
             pygame.init()
         self.gameState = clientGame
@@ -56,6 +55,7 @@ class Display():
         self.animationManager.create_topic("splashes", 2)
         self.cardLookup = self.__create_card_img_dict()
 
+        # TODO this needs to be fixed / documented / shaped
         self.nMidPiles = 2
         self.nTheirPiles = 4
         self.nMyPiles = 4
@@ -80,7 +80,7 @@ class Display():
                         }
 
         self.screen = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption(f"Spit!")
+        pygame.display.set_caption(f"Spit!") # Default caption
         self.backgroundColor = backgroundColor
 
         self.clock = pygame.time.Clock()
@@ -187,7 +187,7 @@ class Display():
         -------
         None
         """
-
+        # TODO inline comments
         middle = (self.width // 2, self.height // 2)
         img = pygame.image.load("./images/flip.png")
         szW, szH = img.get_size()
@@ -252,9 +252,15 @@ class Display():
         self.animationManager.register_job(holdJob, "static", DrawOrder.BEFORE)
 
     def done_setup(self):
+        """
+        Set the display status to be running
+        """
         self.status = Display.DisplayStatus.RUNNING
 
     def show_first_frame(self):
+        """
+        Set up the initial frame (all blank cards) and allow the player to quit
+        """
         # Make and place the cards on the screen
         myLayout, theirLayout, midPiles, _, myCardsLeft, theirCardsLeft = self.gameState.get_state()
 
@@ -283,7 +289,7 @@ class Display():
         # TODO AIDEN
         """
         self.status = Display.DisplayStatus.STOPPING
-        self.msgQueue.put(None)
+        self.msgQueue.put(None) # TODO Don't love this, do we consider putting this where this funciton is called
 
     def run(self):
         """

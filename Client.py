@@ -133,12 +133,11 @@ class Client(BaseClient):
         -------
         None
         """
-        print(f"Client [{threading.get_ident()}] received {msg} | {self.status}")
+        print(f"Client [{threading.get_ident()}] received {msg} | {self.status}") #TODO remove
         
         # Messages that should be handled the same regardless of client status
         match msg:
             case ("game-stopped", "player-left", who):
-                    ## Go-go-gadget display stuff
                     self.stop_game()
                     print(f"{who} left the game. Closing...")
             case _:
@@ -186,6 +185,7 @@ class Client(BaseClient):
                     self.msgQueue.put(("no-animations",))
                 case _:
                     print(f"Received message {msg} in READYING phase")
+
         elif self.status == Client.ClientStatus.PLAYING:
             match msg:
                 case ("game-stopped", "draw", _):
@@ -209,8 +209,6 @@ class Client(BaseClient):
                 case ("flip", cards, pileIdxs): 
                     self.display.flip_cards(cards, pileIdxs, 1)
 
-
-                    ### Go-go-gadget display stuff
                 case _:
                     print(f"Unable to parse message: {msg} while PLAYING")
                     # TODO do we gracefully exit here, what else would we do
@@ -219,7 +217,7 @@ class Client(BaseClient):
 
     def stop_game(self):
         """
-        TODO make this better / get rid
+        Set client status to stopping and gracefully stop the display
         """
         self.status = Client.ClientStatus.STOPPING
         self.display.stop_display() 
@@ -227,5 +225,5 @@ class Client(BaseClient):
 if __name__ == "__main__":
     print("RUNNING CODE (WATCH OUT)")   
     name = input('Player Name: ')
-    myCli = Client("10.243.17.110", 9000, name)
+    myCli = Client("localhost", 9000, name)
     # myCli = Client("10.0.0.138", 9000, name)
