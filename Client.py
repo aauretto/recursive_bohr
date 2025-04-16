@@ -227,5 +227,5 @@ class Client(BaseClient):
 if __name__ == "__main__":
     print("RUNNING CODE (WATCH OUT)")   
     name = input('Player Name: ')
-    myCli = Client("10.0.0.249", 9000, name)
+    myCli = Client("10.243.100.155", 9000, name)
     # myCli = Client("10.0.0.138", 9000, name)

@@ -2,7 +2,7 @@ import pygame
 from SharedState import ClientState, PlayCardAction
 import math
 from queue import Queue
-from AnimationManager import *
+from JobManager import *
 import Animations
 import os
 from enum import Enum
@@ -50,9 +50,10 @@ class Display():
         self.status = Display.DisplayStatus.SETUP
 
         # Create animation manager that handles drawing and moving cards
-        self.animationManager = AnimationManager()
+        self.animationManager = JobManager()
         self.animationManager.create_topic("static", 0)
         self.animationManager.create_topic("dynamic", 1)
+        self.animationManager.create_topic("splashes", 2)
         self.cardLookup = self.__create_card_img_dict()
 
         self.nMidPiles = 2
@@ -187,6 +188,13 @@ class Display():
         None
         """
 
+        middle = (self.width // 2, self.height // 2)
+        img = pygame.image.load("./images/flip.png")
+        szW, szH = img.get_size()
+        img = pygame.transform.scale(img, (szW * 2, szH * 2))
+        flipAnimation = Animations.FlipAnimation(self.screen, middle, img, 1)
+        self.animationManager.register_job(flipAnimation, "splashes")
+
         for (card, pileIdx) in zip(cards, pileIdxs):
 
             oldImg, _ = self.cardObjs["mid"][pileIdx]
@@ -202,7 +210,7 @@ class Display():
             
             job = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg)
             holdJob = Animations.ShowImage(self.screen, oldImg, (destXpos, destYpos))
-            job.add_subordinate(holdJob)
+            job.add_dependent(holdJob)
             self.animationManager.register_job(job, "dynamic")
             self.animationManager.register_job(holdJob, "static")
 
@@ -239,7 +247,7 @@ class Display():
         cardToCover, _ = self.cardObjs[dest][destPile]
         holdJob = Animations.ShowImage(self.screen, cardToCover, (destXpos, destYpos))
         moveJob = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, cardToMove)
-        moveJob.add_subordinate(holdJob)
+        moveJob.add_dependent(holdJob)
         self.animationManager.register_job(moveJob, "dynamic")
         self.animationManager.register_job(holdJob, "static", DrawOrder.BEFORE)
 
