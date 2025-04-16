@@ -106,6 +106,19 @@ class Server(BaseServer):
             self.rx_message()
     
     def __terminate_game(self, winnerId):
+        """
+        Correctly parse the information that needs to be sent to stop_game
+
+        Parameters
+        ----------
+        winnerId: int | None
+            The id of the player that won or None if the game is a draw
+        
+        Returns
+        -------
+        None
+
+        """
         if winnerId != None:
             winner = self.__client_from_id(winnerId)
             self.__stop_game("winner", data=winner)
@@ -141,6 +154,7 @@ class Server(BaseServer):
                     self.__stop_game("player-left", self.currentPlayers[client]['uname'])
                 case _:
                     print(f"Received message {msg} in SETUP phase")
+       
         elif self.serverStatus == Server.ServerStatus.RUNNING:
             # Handle these messages while the game is running
             match msg:
@@ -158,13 +172,34 @@ class Server(BaseServer):
                         self.__flip_if_able()
 
     def __any_animating(self):
-       return any([v['animating'] for v in self.currentPlayers.values()])
+        """
+        Check if any players are currently animating 
+
+        Returns
+        -------
+        : bool
+            True if any player is animating, else False
+        
+        """
+        return any([v['animating'] for v in self.currentPlayers.values()])
     
     def __make_all_animating(self):
+        """
+        Sets all the players to be animating
+        """
         for v in self.currentPlayers.values():
             v['animating'] = True
 
     def __flip_if_able(self):
+        """
+        Initiates flipping if it is a legitimate time to do so
+
+        Returns
+        -------
+        : bool
+            An indicator of whether or not a flip occured or nor
+        """
+        # Only flip if no one is currently animating and no one can do anything
         if not self.__any_animating() and not self.state.moves_available():
             
             playersFlipped = self.state.flip()
