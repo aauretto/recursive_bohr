@@ -20,7 +20,7 @@ class Deck():
         for s in (Card.Suit.SPADES, Card.Suit.HEARTS, Card.Suit.CLUBS, Card.Suit.DIAMONDS):
             for r in range(1, 14):
                 self.theDeck.append(Card(r, s))
-
+                
     def shuffle(self):
         """
          Shuffles the order of the deck
