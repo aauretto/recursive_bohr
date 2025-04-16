@@ -106,7 +106,7 @@ class Server(BaseServer):
             self.rx_message()
     
     def __terminate_game(self, winnerId):
-        if winnerId:
+        if winnerId != None:
             winner = self.__client_from_id(winnerId)
             self.__stop_game("winner", data=winner)
         else: # Draw
@@ -300,14 +300,14 @@ class Server(BaseServer):
             self.serverStatus = Server.ServerStatus.STOPPED
             if reason == "winner":
                 # in this case, data == client socket that won
-                self.broadcast_gamestate("new-state")
+                self.broadcast_gamestate("new")
                 self.exclusive_broadcast([data], ("game-stopped", "lost", self.currentPlayers[data]['uname']))
                 self.tx_message(data, ("game-stopped", "won", "CONGRATS!"))
             else:
                 self.broadcast_message(('game-stopped', reason, data))  
 
-# SERVER_ADDR = "localhost"
-SERVER_ADDR = "0.0.0.0"
+SERVER_ADDR = "localhost"
+# SERVER_ADDR = "0.0.0.0"
 SERVER_PORT = 9000
 
 def main():
