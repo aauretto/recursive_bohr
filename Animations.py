@@ -1,7 +1,7 @@
 import time
 
 import pygame
-from JobManager import BaseJob
+from JobManager import BaseJob, JobWithTrigger
 
 #==============================================================================#
 #                     Subclasses of BaseJob Used for Animations
@@ -12,7 +12,7 @@ class ShowImage(BaseJob):
     This animation job puts an image at position pos on the screen until someone
     calls its finish() method
     """
-    def __init__(self, screen, image, pos, startImmediately=True):
+    def __init__(self, screen, image, pos, startImmediately=True, duration=None):
         """
         Constructor
 
@@ -146,3 +146,51 @@ class FlipAnimation(BaseJob):
 
         if prog >= 1:
             self.finish()
+
+
+class OverlayAndText(BaseJob):
+    """
+    Puts a colored overlay on top of the entire screen and then displays some
+    text in a given position
+    """
+    def __init__(self, screen, bgColor, text, textPos, fontSz = 72, textColor = (0,0,0), startImmediately=True):
+        """
+        Constructor
+
+        Parameters
+        ----------
+        screen: pygame.display
+            The screen on which to draw our animation
+        bgColor: tuple(int, int, int, int)
+            RGBA code for color to fill screen with
+        test: str
+            Text to display
+        textPos: tuple(int, int)
+            The center (x,y) position in pixels to display the text at
+        fontSz: int
+            Font size to use
+        textColor: tuple(int, int, int, int)
+            RGBA code for text color
+        """
+        super().__init__(startImmediately)
+        self.screen = screen
+
+        width = self.screen.get_width()
+        height = self.screen.get_height()
+        textXpos, textYpos = textPos
+
+        self.overlay = pygame.Surface((width, height), pygame.SRCALPHA)
+        self.overlay.fill(bgColor)
+        font = pygame.font.SysFont(None, fontSz)
+        
+        # Get rect to center it
+        self.textSurf = font.render(text, True, textColor)  # True = anti-aliasing
+        self.textRect = self.textSurf.get_rect(center=(textXpos, textYpos))
+
+
+    def step(self):
+        """
+        Paint overlay then put text on top of that
+        """
+        self.screen.blit(self.overlay, (0,0))
+        self.screen.blit(self.textSurf, self.textRect)

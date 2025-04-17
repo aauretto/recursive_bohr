@@ -59,6 +59,9 @@ class BaseJob(ABC):
         """
         self.successors.append(job)
 
+    def start(self):
+        self.started = True
+
     def finish(self):
         """
         Flag this job as finished and stop and dependents we have
@@ -74,6 +77,46 @@ class BaseJob(ABC):
         for job in self.successors:
             job.start()
 
+class JobWithTrigger(BaseJob):
+    def __init__(self, job, trigger, action, startImmediately=True):
+        """
+        Constructor
+
+        Parameters
+        ----------
+        textColor: tuple(int, int, int, int)
+            RGBA code for text color
+        """
+        super().__init__(startImmediately)
+
+        self.job = job
+        self.trigger = trigger
+        self.action = action 
+
+    def step(self):
+        self.job.step()
+        if self.trigger():
+            self.action()
+
+def DELAY_TRIGGER(delay):
+    """
+    Creates a predicate that when evaluated returns whether delay seconds 
+    have passed since time of first evaluation.
+    
+    Parameters
+    ----------
+    delay: float 
+        Time in seconds to be used in predicate returned
+    """
+    import time
+    startTime = None
+    def trigger():
+        nonlocal startTime # use startTime from DELAY_TRIGGER
+        # First call sets start time
+        if startTime is None:
+            startTime = time.time()
+        return (time.time() - startTime) > delay
+    return trigger
 
 class DrawOrder(Enum):
     BEFORE = 0
@@ -139,9 +182,12 @@ class JobManager():
 
             for topic in topics:
                 self.thisFrameJobCt += topic.step_jobs()
-            
-            for topic in topics:
-                topic.remove_finished()
+
+            self.remove_finished()
+
+    def remove_finished(self):        
+        for topic in self.allTopics.values():
+            topic.remove_finished()
                 
     def all_animations_stopped(self):
         """

@@ -1,3 +1,4 @@
+import time
 import pygame 
 from SharedState import ClientState, PlayCardAction
 import math
@@ -262,27 +263,86 @@ class Display():
         Set up the initial frame (all blank cards) and allow the player to quit
         """
         # Make and place the cards on the screen
-        myLayout, theirLayout, midPiles, _, myCardsLeft, theirCardsLeft = self.gameState.get_state()
-
-        self.screen.fill(self.backgroundColor)
-        self.__update_layouts(myLayout, "me")
-        self.__update_layouts(theirLayout, "them")
-        self.__update_layouts(midPiles, "mid")
-
-        # Show cards left
-        self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
-        self.__show_cards(theirCardsLeft, FONT_SIZE)
+        
+        waitingOverlay = Animations.OverlayAndText(self.screen, (128,128,128,200), "Waiting for Opponent...", (self.width // 2, 270))
+        self.animationManager.register_job(waitingOverlay, "splashes")
 
         while self.status == Display.DisplayStatus.SETUP:
             self.clock.tick(FPS)
             pygame.display.flip()
+
+            myLayout, theirLayout, midPiles, _, myCardsLeft, theirCardsLeft = self.gameState.get_state()
+
+            self.screen.fill(self.backgroundColor)
+            self.__update_layouts(myLayout, "me")
+            self.__update_layouts(theirLayout, "them")
+            self.__update_layouts(midPiles, "mid")
+
+            # Show cards left
+            self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
+            self.__show_cards(theirCardsLeft, FONT_SIZE)
+
+            self.animationManager.step_jobs()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     self.status = Display.DisplayStatus.STOPPING
                     self.msgQueue.put(("quitting",))
                     return
+        
+        waitingOverlay.finish()
+        self.animationManager.remove_finished()
         print("Done showing initial frame")
+
+    def do_countdown(self, duration = 3):
+        # 3s Countdown by default
+
+        # Custom manager so we dont muck with animation manager for this class
+        countDownManager = JobManager()
+        countDownManager.create_topic("splashes")
+
+        # Each "showX" job displays a digit and queues the next digit to display after a third of the countdown has passed
+        show3inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "3", (self.width // 2 - 100, 260))
+        show2inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "2", (self.width // 2      , 260))
+        show1inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "1", (self.width // 2 + 100, 260))
+
+        show1 = JobWithTrigger(show1inner, DELAY_TRIGGER(duration/3), lambda: show1.finish(), startImmediately=False)
+        show2 = JobWithTrigger(show2inner, DELAY_TRIGGER(duration/3), lambda: show1.start(), startImmediately=False)
+        show3 = JobWithTrigger(show3inner, DELAY_TRIGGER(duration/3), lambda: show2.start(), startImmediately=True)
+
+        show1.add_dependent(show2)
+        show1.add_dependent(show3)
+
+        countDownManager.register_job(show3, "splashes")
+        countDownManager.register_job(show2, "splashes")
+        countDownManager.register_job(show1, "splashes")
+
+        startTime = time.time()
+        while (time.time() - startTime) <= duration and self.status != Display.DisplayStatus.STOPPING:
+            self.clock.tick(FPS)
+            pygame.display.flip()
+
+            myLayout, theirLayout, midPiles, _, myCardsLeft, theirCardsLeft = self.gameState.get_state()
+
+            self.screen.fill(self.backgroundColor)
+            self.__update_layouts(myLayout, "me")
+            self.__update_layouts(theirLayout, "them")
+            self.__update_layouts(midPiles, "mid")
+
+            # Show cards left
+            self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
+            self.__show_cards(theirCardsLeft, FONT_SIZE)
+
+            countDownManager.step_jobs()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    self.status = Display.DisplayStatus.STOPPING
+                    self.msgQueue.put(("quitting",))
+                    return
+
 
     def stop_display(self):
         """
@@ -298,6 +358,7 @@ class Display():
 
         self.show_first_frame()
 
+
         if self.status != Display.DisplayStatus.STOPPING:
             caption = "Playing Spit! with "
             for i, name in enumerate(self.names):
@@ -306,6 +367,8 @@ class Display():
                     caption += ", "
         
             pygame.display.set_caption(caption)
+            self.do_countdown()
+
 
         # ==========================================================
         # All initialization screen stuff should show up before here
