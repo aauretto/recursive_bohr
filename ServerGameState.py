@@ -24,6 +24,7 @@ class Player:
         self.name = name
         self.id = id
         self._layout = deck.deal(layoutSize)
+        deck.deal(40)
 
     def get_layout(self):
         """
@@ -262,7 +263,11 @@ class ServerGameState:
         """
         # no moves available AND all decks empty  => DRAW
         if not self.moves_available() and all([p.deck.is_empty() for p in self.players]):
-            return (True, None)
+            counts = [sum(1 for card in player.get_layout() if card is not None) for player in self.players]
+            if len(set(counts)) == 1:
+                return (True, None)
+            else:
+                return (True, counts.index(min(counts)))
         else:
             # OR one persons layout is empty AND their deck is empty => WINNER
             for idx, player in enumerate(self.players): 
@@ -284,6 +289,10 @@ class ServerGameState:
         -------
         : tuple(list(Card), list(Card), list(Card), int, int)
         """
-        player = self.players[playerIdx]
-        # TODO fix hackey -1
-        return player.get_layout(), self.players[playerIdx - 1].get_layout(), self.game_piles, player.cards_left(), self.players[playerIdx - 1].cards_left()
+        thisPlayer = self.players[playerIdx]
+        otherPlayerInfo = {}
+        for i, player in enumerate(self.players):
+            if i != playerIdx:
+                otherPlayerInfo[i] = {'layout'   : player.get_layout(),
+                                    'cardsLeft': player.cards_left()}
+        return thisPlayer.get_layout(), thisPlayer.cards_left(), self.game_piles.copy(), otherPlayerInfo

@@ -305,7 +305,11 @@ class Server(BaseServer):
         ClientStatePackage for the given client
         """
         clientIdx = self.currentPlayers[client]['id']
-        playerLayout, oppLayout, midPiles, myDeckSize, theirDeckSize = self.state.get_player_info(clientIdx)
+        playerLayout, myDeckSize, midPiles, opponentInfo = self.state.get_player_info(clientIdx)
+
+        otherPlayerIdx = [subdict['id'] for subdict in self.currentPlayers.values() if subdict.get('id') != clientIdx][0] # There will only be one in a two player game
+        oppLayout = opponentInfo[otherPlayerIdx]['layout']
+        theirDeckSize = opponentInfo[otherPlayerIdx]['cardsLeft']
         return ClientStatePackage(playerLayout, oppLayout, midPiles, myDeckSize, theirDeckSize)
 
     def remove_client(self, client):
