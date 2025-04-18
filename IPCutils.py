@@ -37,17 +37,23 @@ class BaseServer:
                  qLen : int = 1, 
                  msgBroker = MessageBrokers.LenAndPayload()):
         """
-        Constructor
-        Params:
-          host -- Address this server can be reached at
-          port -- Port this server will listen on
-          qLen -- Number of incoming connection requests that can wait to be 
-                  accepted before one is refused.
-          msgBroker -- an object that implements the following methods:
-            tx(socket, message) -- sends message over a socket
-            rx(socket)          -- receives a message over a socket
-            Defines the over-the-wire protocol this client uses and should be 
-            the same for both server and client.
+        Constructor for the Base Server
+
+        Parameters
+        ----------
+        host: str
+            Address this server can be reached at
+        port: int
+            Port this server will listen on
+        qLen: int
+            Number of incoming connection requests that can wait to be 
+            accepted before one is refused.
+        msgBroker: LenAndPayload
+            an object that implements the following methods:
+                tx(socket, message) -- sends message over a socket
+                rx(socket)          -- receives a message over a socket
+                Defines the over-the-wire protocol this client uses and should
+                be the same for both server and client.
         """
         self.host = host
         self.port = port
@@ -67,6 +73,11 @@ class BaseServer:
         """
         Rejects n connections from clients. Blocks until we get through all 
         nConx connections.
+
+        Parameters
+        ----------
+        nConx: int
+            The number of connections to reject
         """
         rejClients = []
         for _ in range(nConx):
@@ -79,6 +90,11 @@ class BaseServer:
         """
         Accepts n connections from clients. Blocks until we get all nConx 
         connections.
+
+        Parameters
+        ----------
+        nConx: int
+            The number of connections to accept
         """
         newClients = []
         for _ in range(nConx):
@@ -99,6 +115,13 @@ class BaseServer:
     def tx_message(self, client, msg):
         """
         Send message msg to client client
+
+        Parameters
+        ----------
+        client: socket.socket
+            The socket object of the client to send the message to 
+        msg: any
+            The message to send to the client
         """
         try:
             self.msgBroker.tx(client, msg)
@@ -109,6 +132,11 @@ class BaseServer:
     def broadcast_message(self, msg):
         """
         Send message msg to all clients
+
+        Parameters
+        ----------
+        msg: any
+            The message to broadcast
         """
         for c in self.clients:
             self.tx_message(c, msg)
@@ -116,6 +144,13 @@ class BaseServer:
     def exclusive_broadcast(self, clientsToExclude, msg):
         """
         Broadcasts a message to all but clients in list clientsToExclude
+
+        Parameters
+        ----------
+        clientsToExclude: list(socket.socket)
+            The list of client sockets to not broadcast the message to
+        msg: any
+            The message to broadcast
         """
         for c in self.clients:
             if c not in clientsToExclude:
@@ -158,14 +193,24 @@ class BaseServer:
         """
         Echos messages to all clients. Override this for server-specific 
         behavior.
+
+        Parameters
+        ----------
+        client: socket.socket
+            The socket of the client the message came from
+        msg: any
+            The message recieved from the client
         """
-        if msg == STOP_SERVER_MSG:
+        if msg == STOP_SERVER_MSG: #TODO Aiden??
             self.stop()
             print("Set stop flag")
             return
         self.broadcast_message(msg)
 
     def stop(self):
+        """
+        Sets the server to not keep going
+        """
         self.__keepGoing = False
 
     def is_running(self):
@@ -177,6 +222,11 @@ class BaseServer:
     def remove_client(self, client):
         """
         Removes a client from our list of clients
+
+        Parameters
+        ----------
+        client: socket.socket
+            The socket of the client to remove
         """
         self.clients.remove(client)
         client.close()
@@ -188,12 +238,16 @@ class BaseServer:
 class BaseClient:
     def __init__(self, msgBroker = MessageBrokers.LenAndPayload()):
         """
-        Constructor. msgBroker should be an object that implements the following 
-        methods:
-            tx(socket, message) -- sends message over a socket
-            rx(socket)          -- receives a message over a socket
-        Defines the over-the-wire protocol this client uses and should be the 
-        same for both server and client.
+        Constructor for the BaseClient class        
+        
+        Parameters
+        ----------
+        msgBroker: LenAndPayload
+            should be an object that implements the following methods:
+                tx(socket, message) -- sends message over a socket
+                rx(socket)          -- receives a message over a socket
+            Defines the over-the-wire protocol this client uses and should be
+            the same for both server and client.
 
         This class supports only one connection at a time.
         """
@@ -230,6 +284,11 @@ class BaseClient:
     def tx_message(self, msg):
         """
         Send a message
+
+        Parameters
+        ----------
+        msg: any
+            The message to send to the connection
         """
         try:
             self.msgBroker.tx(self.sock, msg)
@@ -249,6 +308,11 @@ class BaseClient:
         """
         What to do when we get a message. Override this to define custom 
         behavior
+
+        Parameters
+        ----------
+        msg: any
+            The received message
         """
         print(msg)
 

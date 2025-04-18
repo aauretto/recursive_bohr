@@ -35,16 +35,22 @@ class Display():
             The width in pixels of the pygame screen the game will apear on
         screenHeight: int
             The height in pixels of the pygame screen the game will apear on
-        
+        backgroundColor: tuple(int, int, int)
+            The RGB tuple for the color of the game's background
         """
  
          # Initialize pygame if it wasn't already
         if not pygame.get_init():
             pygame.init()
+        
+        # Inialize internal variables from parameters
         self.gameState = clientGame
         self.msgQueue = msgQueue
         self.width = screenWidth
         self.height = screenHeight
+        self.backgroundColor = backgroundColor
+
+        # Initialize other internal variables
         self.targetCardWidth = self.width // 10
         self.names = None
         self.status = Display.DisplayStatus.SETUP
@@ -54,6 +60,8 @@ class Display():
         self.animationManager.create_topic("static", 0)
         self.animationManager.create_topic("dynamic", 1)
         self.animationManager.create_topic("splashes", 2)
+
+        # Create the dict for looking up the images of the cards
         self.cardLookup = self.__create_card_img_dict()
 
         # TODO this needs to be fixed / documented / shaped
@@ -80,10 +88,9 @@ class Display():
                           "mid"  : [],
                         }
 
+        # Finalize pygame initialization
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption(f"Spit!") # Default caption
-        self.backgroundColor = backgroundColor
-
         self.clock = pygame.time.Clock()
 
     def set_initial(self):
@@ -139,10 +146,10 @@ class Display():
         """
         img = pygame.image.load(CARD_DIR + str(card) + '.png')
         img = pygame.transform.scale(img, 
-                             (img.get_width() // math.ceil(img.get_width() \
-                                                / self.targetCardWidth), 
-                             img.get_height() // math.ceil(img.get_width() \
-                                                / self.targetCardWidth)))
+                            (img.get_width() // \
+                             math.ceil(img.get_width() / self.targetCardWidth), 
+                             img.get_height() // \
+                             math.ceil(img.get_width() / self.targetCardWidth)))
         return img
 
     def __update_layouts(self, layout, who):
@@ -262,11 +269,11 @@ class Display():
         """
         Set up the initial frame (all blank cards) and allow the player to quit
         """
-        # Make and place the cards on the screen
-        
+        #TODO Aiden doc this
         waitingOverlay = Animations.OverlayAndText(self.screen, (128,128,128,200), "Waiting for Opponent...", (self.width // 2, 270))
         self.animationManager.register_job(waitingOverlay, "splashes")
 
+        # Display the first frame 
         while self.status == Display.DisplayStatus.SETUP:
             self.clock.tick(FPS)
             pygame.display.flip()
@@ -284,6 +291,7 @@ class Display():
 
             self.animationManager.step_jobs()
 
+            # Allow player to quit but no other interaction
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -336,6 +344,7 @@ class Display():
 
             countDownManager.step_jobs()
 
+            # Allow players to quit but no other interaction
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -399,7 +408,6 @@ class Display():
             highlights = []
             for (_, rect) in self.cardObjs["me"]:
                 highlights.append(self.make_border(10, .5, rect, HIGHLIGHT_COLOR))
-            
             if selected:
                 (surf, rect) = highlights[selectedIdx]
                 self.screen.blit(surf, rect)
@@ -440,6 +448,7 @@ class Display():
                             break
 
                     if selected:
+                        # Check if we are trying to place a card
                         print(f"Else Case")
                         for i, (card, card_rect) in enumerate(self.cardObjs["mid"]):
                             print(card_rect, event.pos)
@@ -481,6 +490,8 @@ class Display():
             The amount around the rect to border
         cntr_offset : int
             The offset of the border center to the rect center
+        rect: pygame.Rect
+            The pygame rect around which to make a border
         color : (int, int, int)
             An RGB tuple for the color of the rectangle
         width : int
@@ -500,6 +511,9 @@ class Display():
         return surf, rect
 
     def remove_border_from(self, screen, highlights, border_idx):
+        """
+        # TODO also asses if we need this 
+        """
         surf, rect = self.remove_border(highlights, border_idx)
         screen.blit(surf, rect)
 
@@ -517,12 +531,19 @@ class Display():
         None
         """
         image = pygame.image.load(f"./images/{result}.png").convert_alpha()
-        #image = pygame.image.load(f"./images/won.png").convert_alpha()
+
+        # Make the image half translucent
         image.set_alpha(128)
+
+        # Scale and center the image
         image = pygame.transform.scale(image, (self.width // 2, self.height // 2))
         rect  = image.get_rect(center = (self.width // 2, self.height // 2))
+
+        # Put the image on the screen
         self.screen.blit(image, rect)
         pygame.display.flip()
+
+        # Wait for the user to quit
         quit=False
         while not quit:
             for event in pygame.event.get():

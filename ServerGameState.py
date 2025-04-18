@@ -13,6 +13,8 @@ class Player:
              Deck for the player to start with
          id: int
              Integer id for the player
+         name: str
+            The name of this player
          layoutSize: int
              Number of cards to deal out from Deck into the player's layout
          
@@ -24,16 +26,11 @@ class Player:
         self.name = name
         self.id = id
         self._layout = deck.deal(layoutSize)
-        deck.deal(40)
 
     def get_layout(self):
         """
          Returns the player's full layout
  
-         Parameters
-         ----------
-         None
-         
          Returns
          -------
          : list(Card)
@@ -44,10 +41,6 @@ class Player:
     def deal_card(self):
         """
          Removes and returns the top card of the Player's Deck
- 
-         Parameters
-         ----------
-         None
          
          Returns
          -------
@@ -142,8 +135,6 @@ class ServerGameState:
             top_card = self.players[i % numPlayers].deal_card()
             self.game_piles.append(top_card)
 
-        # # Make sure someone can play
-        # self.__validate_game_state()
 
     def __deal_game_pile(self):
         """
@@ -174,9 +165,12 @@ class ServerGameState:
             True if moves are available else False
         
         """
+        # For each card in each players layout that is a real card
         for player in self.players:
             for i in range(self.layoutSize):
                 if player.get_card(i) is not None:
+
+                    # Check to see if it can be played on each game pile
                     for middleCard in self.game_piles:
                         if Card.are_adjacent(player.get_card(i), middleCard):
                             return True 
@@ -193,9 +187,8 @@ class ServerGameState:
             The list of indices of the players that flipped
         """
         (gameOver, _) = self.game_over()
+        # Only flip at the correct time
         if not self.moves_available() and not gameOver:
-            # If all players can flip, flip a card, otherwise we need to wait to
-            # flip a card until players are ready to do so
             return self.__deal_game_pile()
         return []
 
@@ -282,7 +275,7 @@ class ServerGameState:
 
         Parameters
         ----------
-        playerIdx: idx
+        playerIdx: int
             The index of the player to fetch information for
         
         Returns

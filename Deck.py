@@ -11,10 +11,9 @@ class Deck():
  
          Returns
          -------
-         Deck
+         : Deck
          """
         self.theDeck = []
-
 
         # create deck of 52 standard cards:
         for s in (Card.Suit.SPADES, Card.Suit.HEARTS, Card.Suit.CLUBS, Card.Suit.DIAMONDS):
@@ -38,7 +37,7 @@ class Deck():
          Returns
          -------
          : int 
-             the number of cards in the deck
+             the number of cards currently in the deck
          """
         return len(self.theDeck)
 
@@ -56,6 +55,7 @@ class Deck():
          toRet: list(Card) 
              a list of cards of length numToDeal
          """
+        # TODO this will never except, how do we want to handle this
         try: 
             toRet = self.theDeck[0:numToDeal]
         except:
