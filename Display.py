@@ -294,14 +294,16 @@ class Display():
         """
         #TODO Aiden doc this
         waitingOverlay = Animations.OverlayAndText(self.screen, (128,128,128,200), "Waiting for Opponent...", (self.width // 2, 270))
-        self.animationManager.register_job(waitingOverlay, "splashes")
-
+        waitingManager = JobManager() 
+        waitingManager.create_topic("splashes", 0)
+        waitingManager.register_job(waitingOverlay, "splashes")
+    
         # Display the first frame 
         while self.status == Display.DisplayStatus.SETUP:
             self.clock.tick(FPS)
             pygame.display.flip()
 
-            self.animationManager.step_jobs()
+            waitingManager.step_jobs()
 
             # Allow player to quit but no other interaction
             for event in pygame.event.get():
@@ -311,8 +313,6 @@ class Display():
                     self.msgQueue.put(("quitting",))
                     return
         
-        waitingOverlay.finish()
-        self.animationManager.remove_finished()
         print("Done showing initial frame")
 
     def do_countdown(self, duration = 3):
