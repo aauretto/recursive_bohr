@@ -178,6 +178,7 @@ class Client(BaseClient):
             match msg:
                 case ("state", "initial", csp): 
                     self.state.update_state(csp)
+                    self.display.set_initial()
                     self.status = Client.ClientStatus.PLAYING
                     self.display.done_setup()
                     self.msgQueue.put(("no-animations",))

@@ -119,12 +119,7 @@ class ClientState():
         """
         with self.monitor:
             if not self.__hasData:
-                ### TODO: FIx magic numbers
-                myDeckSize = 4
-                theirDeckSize = 4
-                midPiles = 2
-                return [None] * myDeckSize, [None] * theirDeckSize, [None] * midPiles, [False] * myDeckSize, 0, 0
-                # return None, None, None, None, None, None
+                return [None], [None], [None], [False], 0, 0
             myLayout    = self.__gameState.myLayout.copy()
             theirLayout = self.__gameState.theirLayout.copy()
             midPiles = self.__gameState.midPiles.copy()
@@ -134,4 +129,17 @@ class ClientState():
         return myLayout, theirLayout, midPiles, [c != None for c in myLayout], myDeckSize, theirDeckSize
         
 
+    def shape(self):
+        """
+        Returns the number of piles for us, our opponent, and in the middle
 
+        Returns
+        -------
+        :tuple(int, int, int)
+            Where the first element is the number of our piles
+            The second element is the number of their piles
+            The final element is the number of middle piles
+        """
+        myLayout, theirLayout, midPiles, _, _, _ = self.get_state()
+        return (len(myLayout), len(theirLayout), len(midPiles))    
+        

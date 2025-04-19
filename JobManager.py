@@ -93,7 +93,7 @@ class JobWithTrigger(BaseJob):
     """
     def __init__(self, job, trigger, action, startImmediately=True, triggerOnce=False):
         """
-        Constructor #TODO Aiden
+        Constructor
 
         Parameters
         ----------
@@ -116,7 +116,7 @@ class JobWithTrigger(BaseJob):
         self.job = job
         self.trigger = trigger
         self.action = action 
-        self.trigerOnce = triggerOnce
+        self.triggerOnce = triggerOnce
         self.triggered = False
 
     def step(self):

@@ -12,6 +12,10 @@ FPS = 60
 CARD_DIR = './images/card_pngs/'
 HIGHLIGHT_COLOR = (180, 0, 180)
 FONT_SIZE = 30
+VERT_DIVS = 6
+OPP_VERT_POS = 5
+MID_VERT_POS = 3
+MY_VERT_POS = 1
 
 class Display():
 
@@ -65,21 +69,19 @@ class Display():
         self.cardLookup = self.__create_card_img_dict()
 
         # TODO this needs to be fixed / documented / shaped
-        self.nMidPiles = 2
-        self.nTheirPiles = 4
-        self.nMyPiles = 4
+        self.nMidPiles, self.nTheirPiles, self.nMyPiles = self.gameState.shape()
 
         self.vpos = {
-                      "them" : self.height - (5 * (self.height)) // (5 + 1),
-                      "me"   : self.height - (1 * (self.height)) // (5 + 1),
-                      "mid"  : self.height - (3 * (self.height)) // (5 + 1),
+                      "them" : self.height - (OPP_VERT_POS * (self.height)) 
+                                             // (VERT_DIVS),
+                      "mid"  : self.height - (MID_VERT_POS * (self.height)) 
+                                             // (VERT_DIVS),
+                      "me"   : self.height - (MY_VERT_POS * (self.height)) 
+                                             // (VERT_DIVS),
                     }
         
-        self.xpos = {
-                      "them" : [i * (self.width // (self.nTheirPiles + 1)) for i in range(1, self.nTheirPiles + 1)],
-                      "me"   : [i * (self.width // (self.nMyPiles + 1))    for i in range(1, self.nMyPiles + 1)],
-                      "mid"  : [i * (self.width // (self.nMidPiles + 1))   for i in range(1, self.nMidPiles + 1)],
-                    }
+        self.xpos = None
+        self.pile_xpos()
 
         # Gets populated by card objects each pass of the run loop
         self.cardObjs = {
@@ -93,14 +95,19 @@ class Display():
         pygame.display.set_caption(f"Spit!") # Default caption
         self.clock = pygame.time.Clock()
 
+    def pile_xpos(self):
+        self.nMyPiles, self.nTheirPiles, self.nMidPiles = self.gameState.shape()
+        self.xpos = {
+                   "them" : [i * (self.width // (self.nTheirPiles + 1)) for i in range(1, self.nTheirPiles + 1)],
+                   "me"   : [i * (self.width // (self.nMyPiles + 1))    for i in range(1, self.nMyPiles + 1)],
+                   "mid"  : [i * (self.width // (self.nMidPiles + 1))   for i in range(1, self.nMidPiles + 1)],
+               }
+
     def set_initial(self):
         """
         Used to initialize the member layouts the first time
         """
-        myLayout, theirLayout, midPiles, _, _, _ = self.gameState.get_state()
-        self.__update_layouts(myLayout, "me")
-        self.__update_layouts(theirLayout, "them")
-        self.__update_layouts(midPiles, "mid")
+        self.__update_layouts()
 
     def __del__(self):
         """
@@ -152,7 +159,7 @@ class Display():
                              math.ceil(img.get_width() / self.targetCardWidth)))
         return img
 
-    def __update_layouts(self, layout, who):
+    def __update_layout(self, layout, who):
         """
         Update the internal layout
 
@@ -175,6 +182,22 @@ class Display():
             (card, cardRect) = self.cardObjs[who][i]
             cardRect.center = (self.xpos[who][i], self.vpos[who])
             self.screen.blit(card, cardRect)
+    
+    def __update_layouts(self):
+        # Make and place the cards on the screen
+        myLayout, theirLayout, midPiles, selectable, myCardsLeft, theirCardsLeft = self.gameState.get_state()
+
+        self.pile_xpos() # update sizes of each set of piles
+
+        self.__update_layout(myLayout, "me")
+        self.__update_layout(theirLayout, "them")
+        self.__update_layout(midPiles, "mid")
+
+        # Show cards left
+        self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
+        self.__show_cards(theirCardsLeft, FONT_SIZE)
+
+        return selectable
     
     def flip_cards(self, cards, pileIdxs, duration):
         """
@@ -257,7 +280,7 @@ class Display():
         moveJob = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, cardToMove)
         moveJob.add_dependent(holdJob)
         self.animationManager.register_job(moveJob, "dynamic")
-        self.animationManager.register_job(holdJob, "static", DrawOrder.BEFORE)
+        self.animationManager.register_job(holdJob, "static", TopicOrder.BEFORE)
 
     def done_setup(self):
         """
@@ -277,17 +300,6 @@ class Display():
         while self.status == Display.DisplayStatus.SETUP:
             self.clock.tick(FPS)
             pygame.display.flip()
-
-            myLayout, theirLayout, midPiles, _, myCardsLeft, theirCardsLeft = self.gameState.get_state()
-
-            self.screen.fill(self.backgroundColor)
-            self.__update_layouts(myLayout, "me")
-            self.__update_layouts(theirLayout, "them")
-            self.__update_layouts(midPiles, "mid")
-
-            # Show cards left
-            self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
-            self.__show_cards(theirCardsLeft, FONT_SIZE)
 
             self.animationManager.step_jobs()
 
@@ -326,22 +338,14 @@ class Display():
         countDownManager.register_job(show2, "splashes")
         countDownManager.register_job(show1, "splashes")
 
+
         startTime = time.time()
         while (time.time() - startTime) <= duration and self.status != Display.DisplayStatus.STOPPING:
             self.clock.tick(FPS)
             pygame.display.flip()
-
-            myLayout, theirLayout, midPiles, _, myCardsLeft, theirCardsLeft = self.gameState.get_state()
-
+        
             self.screen.fill(self.backgroundColor)
-            self.__update_layouts(myLayout, "me")
-            self.__update_layouts(theirLayout, "them")
-            self.__update_layouts(midPiles, "mid")
-
-            # Show cards left
-            self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
-            self.__show_cards(theirCardsLeft, FONT_SIZE)
-
+            self.__update_layouts()
             countDownManager.step_jobs()
 
             # Allow players to quit but no other interaction
@@ -366,7 +370,6 @@ class Display():
         """
 
         self.show_first_frame()
-
 
         if self.status != Display.DisplayStatus.STOPPING:
             caption = "Playing Spit! with "
@@ -393,16 +396,7 @@ class Display():
             # Draw BG
             self.screen.fill(self.backgroundColor)
 
-            # Make and place the cards on the screen
-            myLayout, theirLayout, midPiles, selectable, myCardsLeft, theirCardsLeft = self.gameState.get_state()
-
-            self.__update_layouts(myLayout, "me")
-            self.__update_layouts(theirLayout, "them")
-            self.__update_layouts(midPiles, "mid")
-
-            # Show cards left
-            self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
-            self.__show_cards(theirCardsLeft, FONT_SIZE)
+            selectable = self.__update_layouts()
 
             # Handle visualization of player selecting a card
             highlights = []
