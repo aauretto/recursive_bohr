@@ -78,25 +78,50 @@ class BaseJob(ABC):
             job.start()
 
 class JobWithTrigger(BaseJob):
-    def __init__(self, job, trigger, action, startImmediately=True):
+    """
+    Bundles together a job and some predicate. Will call action() when predicate
+    returns true.
+    """
+    def __init__(self, job, trigger, action, startImmediately=True, triggerOnce=False):
         """
         Constructor
 
         Parameters
         ----------
-        textColor: tuple(int, int, int, int)
-            RGBA code for text color
+        job: BaseJob
+            The job to step when this job is stepped
+        trigger: func() -> bool
+            Predicate that returns true when some condition is met. Used to
+            determine when / if to call action.
+        action: func() -> any
+            Function to be called when trigger returns true
+        startImmediately: bool
+            Whether this job should start on first step after being registered
+        triggerOnce: bool
+            Whether to call action once and once only when the first call to
+            trigger returns True. If set to false, every time trigger returns
+            true, action will be called.
         """
         super().__init__(startImmediately)
 
         self.job = job
         self.trigger = trigger
         self.action = action 
+        self.trigerOnce = triggerOnce
+        self.triggered = False
 
     def step(self):
+        """
+        Steps the job we own then calls action if we trigger on this step.
+        
+        Returns
+        -------
+        None
+        """
         self.job.step()
-        if self.trigger():
+        if self.trigger() and not (self.triggered and self.triggerOnce):
             self.action()
+            self.triggered = True
 
 def DELAY_TRIGGER(delay):
     """
@@ -107,6 +132,10 @@ def DELAY_TRIGGER(delay):
     ----------
     delay: float 
         Time in seconds to be used in predicate returned
+    
+    Returns
+    -------
+    : func() -> bool
     """
     import time
     startTime = None
@@ -118,23 +147,63 @@ def DELAY_TRIGGER(delay):
         return (time.time() - startTime) > delay
     return trigger
 
-class DrawOrder(Enum):
+class TopicOrder(Enum):
+    """
+    Enum defining whether to add to the front or back of a topic's list of jobs.
+    BEFORE = Job will be stepped before other jobs in the list
+    AFTER  = Job will be stepped after other jobs in the list
+    """
     BEFORE = 0
     AFTER  = 1
 
 class Topic():
+    """
+    Container for a list of jobs. Can be stepped which will step all jobs in the
+    topic.
+    """
     def __init__(self, priority):
+        """
+        Constructor
+
+        Parameters
+        ----------
+        priority: int
+            Integer value representing the priority of this topic relative to
+            other topics. Lower number = higher priority
+        """
         self.jobs = []
         self.priority = priority
 
-    def register_job(self, job, drawOrder):
-        match drawOrder:
-            case DrawOrder.BEFORE:
+    def register_job(self, job, order):
+        """
+        Adds a job to this topic's job list.
+
+        Parameters
+        ----------
+        job: BaseJob
+            A job object to step when this topic is stepped.
+        order: TopicOrder
+            Enum value representing where to put job in this topic's job list.
+    
+        Returns
+        -------
+        None
+        """
+        match order:
+            case TopicOrder.BEFORE:
                 self.jobs.insert(0, job)
-            case DrawOrder.AFTER:
+            case TopicOrder.AFTER:
                 self.jobs.append(job)
     
     def step_jobs(self):
+        """
+        Advances all started jobs in this topic by one step.
+
+        Returns
+        -------
+        jobsStepped: int
+            The number of jobs we called step on
+        """
         jobsStepped = 0
         for job in self.jobs:
             if job.started:
@@ -143,24 +212,47 @@ class Topic():
         return jobsStepped
     
     def remove_finished(self):
+        """
+        Clears out all finished jobs from this topic.
+
+        Returns
+        -------
+        None
+        """
         self.jobs = list(filter(lambda j : not j.finished, self.jobs))
             
 class JobManager():
+    """
+    Container for multiple topics of jobs. Allows for interleaving of BaseJob
+    objects.
+    """
     def __init__(self):
+        """
+        Constructor
+        """
+        # Lock that protects the job/topic lists in this manager
         self.jobLock = threading.Lock()
+        self.allTopics = {} # (topic, priority) : jobList
+        
+        # Used to determine if we went from nonzero to zero jobs stepped 
+        # when step_jobs is called
         self.thisFrameJobCt = 0
         self.lastFrameJobCt = 0
-        self.allTopics = {} # (topic, priority) : jobList
 
     def create_topic(self, topic, priority = 0):
         """
         Add a topic that jobs can be registered under. Lower numbered priorities
         are stepped before higher ones.
+
+        Parameters
+        ----------
+        topic: any
+            Hashable 
         """
         with self.jobLock:
             self.allTopics[topic] = Topic(priority)
 
-    def register_job(self, job, topic, drawOrder=DrawOrder.AFTER):
+    def register_job(self, job, topic, drawOrder=TopicOrder.AFTER):
         """
         ## TODO AIDEN FIX PLEASE
         Register an job under a topic with some topicPiority.
