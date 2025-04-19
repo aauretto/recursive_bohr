@@ -287,6 +287,7 @@ class Display():
         Set the display status to be running
         """
         self.status = Display.DisplayStatus.RUNNING
+        self.msgQueue.put(('no-animations',))
 
     def show_first_frame(self):
         """
@@ -301,7 +302,7 @@ class Display():
         # Display the first frame 
         while self.status == Display.DisplayStatus.SETUP:
             self.clock.tick(FPS)
-            pygame.display.flip()
+            self.screen.fill(self.backgroundColor)
 
             waitingManager.step_jobs()
 
@@ -312,6 +313,7 @@ class Display():
                     self.status = Display.DisplayStatus.STOPPING
                     self.msgQueue.put(("quitting",))
                     return
+            pygame.display.flip()
         
         print("Done showing initial frame")
 

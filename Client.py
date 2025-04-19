@@ -181,7 +181,7 @@ class Client(BaseClient):
                     self.display.set_initial()
                     self.status = Client.ClientStatus.PLAYING
                     self.display.done_setup()
-                    self.msgQueue.put(("no-animations",))
+
                 case _:
                     print(f"Received message {msg} in READYING phase")
 
