@@ -8,14 +8,21 @@ import socket
 
 class Server(BaseServer):
     class ClientStatus(Enum):
+        """
+        Description of the possible status the connected clients can have
+        """
         CONNECTED = 0
         READY     = 1
         PLAYING   = 2 
 
     class ServerStatus(Enum):
+        """
+        Description of the possible status the server can have
+        """
         SETUP   = 0
         RUNNING = 1
         STOPPED = 2
+
     def __init__(self, host, port, numPlayers=2, numGamePiles=2, layoutSize=4):
         """
         Constructor for the Server class
@@ -54,26 +61,34 @@ class Server(BaseServer):
         """
         Starts up the server and run the game
         """
-
         while self.serverStatus == Server.ServerStatus.SETUP:
             self.rx_message()
 
+        # When we're done with SETUP, keep going if we are RUNNING
         if self.serverStatus == Server.ServerStatus.RUNNING:
             for client in self.currentPlayers.keys():
                 self.currentPlayers[client]['status'] = Server.ClientStatus.PLAYING
+            
             # Give everyone the initial gamestate
             self.broadcast_gamestate('initial')   
 
-            # Beign the game
+            # Begin the game
             self.__loop()
+
     def __enough_joined(self):
+        """
+        Returns
+        -------
+        : bool
+            True if at least maxPlayers have connected otherwise False
+        """
         return len(self.currentPlayers) >= self.maxPlayers
 
     def __player_names(self):
         """
         Returns
         -------
-        list(str)
+        : list(str)
             A list of all connected players user names
         """
         return list(map(lambda x: x['uname'], self.currentPlayers.values()))
@@ -82,7 +97,7 @@ class Server(BaseServer):
         """
         Returns
         -------
-        bool
+        : bool
             An indicator if enough players have the READY status
         """
         return all(map(lambda a : a["status"] == Server.ClientStatus.READY, self.currentPlayers.values())) and self.__enough_joined()
@@ -91,7 +106,7 @@ class Server(BaseServer):
         """
         Returns
         -------
-        bool
+        : bool
             An indicator if every player has a user name      
         """
         return all(map(lambda x: x['uname'] != None, self.currentPlayers.values())) and self.__enough_joined()
@@ -137,7 +152,6 @@ class Server(BaseServer):
             The message recieved from the client
 
         """
-        print(f"<= Incoming {msg}")
         if self.serverStatus == Server.ServerStatus.SETUP:
             # We only want to handle these types of messages in the SETUP phase
             match msg:
@@ -281,7 +295,7 @@ class Server(BaseServer):
 
         Parameters
         ----------
-        tag: str
+        stateTag: str
             The type of state being sent
         """
         for client in self.currentPlayers.keys():
@@ -305,7 +319,11 @@ class Server(BaseServer):
         ClientStatePackage for the given client
         """
         clientIdx = self.currentPlayers[client]['id']
-        playerLayout, oppLayout, midPiles, myDeckSize, theirDeckSize = self.state.get_player_info(clientIdx)
+        playerLayout, myDeckSize, midPiles, opponentInfo = self.state.get_player_info(clientIdx)
+
+        otherPlayerIdx = [subdict['id'] for subdict in self.currentPlayers.values() if subdict.get('id') != clientIdx][0] # There will only be one in a two player game
+        oppLayout = opponentInfo[otherPlayerIdx]['layout']
+        theirDeckSize = opponentInfo[otherPlayerIdx]['cardsLeft']
         return ClientStatePackage(playerLayout, oppLayout, midPiles, myDeckSize, theirDeckSize)
 
     def remove_client(self, client):

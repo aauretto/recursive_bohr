@@ -2,6 +2,16 @@ import threading
 
 class PlayCardAction():
     def __init__(self, layoutIdx, midPileIdx):
+        """
+        Constructor
+
+        Parameters
+        ----------
+        layoutIdx: int
+            The index of the card being played
+        midPileIdx: int
+            The index of the card being played onto
+        """
         self.layoutIdx = layoutIdx
         self.midPileIdx = midPileIdx
 
@@ -18,16 +28,20 @@ class ClientStatePackage():
 
         Parameters
         ----------
-        myLayout : list(Card)
+        myLayout: list(Card)
             The cards that this player has in their layout
-        theirLayout : list(Card)
+        theirLayout: list(Card)
             The cards the other player has in their layout
-        midPiles : list(Card)
+        midPiles: list(Card)
             The cards on the center piles
+        myDeckSize: int 
+            The number of cards left in this player's deck
+        theirDeckSize: int
+            The number of cards left in the opponent's deck
         
         Returns
         -------
-        A ClientStatePackage object
+        : ClientStatePackage
         """
         self.myLayout    = myLayout
         self.theirLayout = theirLayout
@@ -52,7 +66,7 @@ class ClientState():
 
         Returns
         -------
-        A ClientState object
+        : ClientState
         """
         self.monitor = threading.Lock()
         self.__gameState = gameState
@@ -68,13 +82,19 @@ class ClientState():
 
         Effects:
         -------
-        Cha
+        Overwrites the current state entirely
         """
         with self.monitor:
             self.__gameState = newState
             self.__hasData = False if newState is None else True
 
     def has_data(self):
+        """
+        Returns
+        -------
+        : bool
+            True if the ClientState has data otherwise False
+        """
         with self.monitor:
             return self.__hasData
 
@@ -92,6 +112,10 @@ class ClientState():
             The cards in the center that players can play onto
         realCards: list(bool)
             Whether or not a specific layout pile in myLayout is nonempty
+        myDeckSize: int
+            The number of cards left in my deck
+        theirDeckSize: int
+            The number of cards left in their deck
         """
         with self.monitor:
             if not self.__hasData:

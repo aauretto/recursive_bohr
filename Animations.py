@@ -96,7 +96,7 @@ class LinearMove(BaseJob):
 
 class FlipAnimation(BaseJob):
     """
-    Moves an image from startPos to endPos over length of time duration
+    Moves an image from startPos to endPos over length of time duration #TODO what does this actually do
     """
     def __init__(self, screen, pos, img, duration, startImmediately=True):
         """
@@ -112,6 +112,9 @@ class FlipAnimation(BaseJob):
             The image to draw on our screen
         duration: float
             The time in s the image takes to move from startPos to endPos
+        startImmediately: bool
+            Whether the flip should start immediately or will need to be
+            triggered by another job
         """
         super().__init__(startImmediately)
         self.pos = pos
@@ -171,6 +174,9 @@ class OverlayAndText(BaseJob):
             Font size to use
         textColor: tuple(int, int, int, int)
             RGBA code for text color
+        startImmediately: bool
+            Whether the flip should start immediately or will need to be
+            triggered by another job
         """
         super().__init__(startImmediately)
         self.screen = screen

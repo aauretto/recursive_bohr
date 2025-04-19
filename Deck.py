@@ -11,10 +11,9 @@ class Deck():
  
          Returns
          -------
-         Deck
+         : Deck
          """
         self.theDeck = []
-
 
         # create deck of 52 standard cards:
         for s in (Card.Suit.SPADES, Card.Suit.HEARTS, Card.Suit.CLUBS, Card.Suit.DIAMONDS):
@@ -38,13 +37,14 @@ class Deck():
          Returns
          -------
          : int 
-             the number of cards in the deck
+             the number of cards currently in the deck
          """
         return len(self.theDeck)
 
     def deal(self, numToDeal):
         """
-         Removes and returns the top numToDeal cards from the deck
+         Removes and returns the top numToDeal cards from the deck.
+         Errors if you try to deal more cards than are in the deck.
          
          Parameters
          ----------
@@ -56,10 +56,10 @@ class Deck():
          toRet: list(Card) 
              a list of cards of length numToDeal
          """
-        try: 
-            toRet = self.theDeck[0:numToDeal]
-        except:
+        if numToDeal > self.__len__():
             raise EmptyDeckError("Deck is empty")
+        
+        toRet = self.theDeck[0:numToDeal]
         self.theDeck = self.theDeck[numToDeal:]
         return toRet
     

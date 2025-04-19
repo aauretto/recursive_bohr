@@ -13,6 +13,8 @@ class Player:
              Deck for the player to start with
          id: int
              Integer id for the player
+         name: str
+            The name of this player
          layoutSize: int
              Number of cards to deal out from Deck into the player's layout
          
@@ -29,10 +31,6 @@ class Player:
         """
          Returns the player's full layout
  
-         Parameters
-         ----------
-         None
-         
          Returns
          -------
          : list(Card)
@@ -43,10 +41,6 @@ class Player:
     def deal_card(self):
         """
          Removes and returns the top card of the Player's Deck
- 
-         Parameters
-         ----------
-         None
          
          Returns
          -------
@@ -141,8 +135,6 @@ class ServerGameState:
             top_card = self.players[i % numPlayers].deal_card()
             self.game_piles.append(top_card)
 
-        # # Make sure someone can play
-        # self.__validate_game_state()
 
     def __deal_game_pile(self):
         """
@@ -173,9 +165,12 @@ class ServerGameState:
             True if moves are available else False
         
         """
+        # For each card in each players layout that is a real card
         for player in self.players:
             for i in range(self.layoutSize):
                 if player.get_card(i) is not None:
+
+                    # Check to see if it can be played on each game pile
                     for middleCard in self.game_piles:
                         if Card.are_adjacent(player.get_card(i), middleCard):
                             return True 
@@ -192,9 +187,8 @@ class ServerGameState:
             The list of indices of the players that flipped
         """
         (gameOver, _) = self.game_over()
+        # Only flip at the correct time
         if not self.moves_available() and not gameOver:
-            # If all players can flip, flip a card, otherwise we need to wait to
-            # flip a card until players are ready to do so
             return self.__deal_game_pile()
         return []
 
@@ -262,7 +256,11 @@ class ServerGameState:
         """
         # no moves available AND all decks empty  => DRAW
         if not self.moves_available() and all([p.deck.is_empty() for p in self.players]):
-            return (True, None)
+            counts = [sum(1 for card in player.get_layout() if card is not None) for player in self.players]
+            if len(set(counts)) == 1:
+                return (True, None)
+            else:
+                return (True, counts.index(min(counts)))
         else:
             # OR one persons layout is empty AND their deck is empty => WINNER
             for idx, player in enumerate(self.players): 
@@ -277,13 +275,17 @@ class ServerGameState:
 
         Parameters
         ----------
-        playerIdx: idx
+        playerIdx: int
             The index of the player to fetch information for
         
         Returns
         -------
         : tuple(list(Card), list(Card), list(Card), int, int)
         """
-        player = self.players[playerIdx]
-        # TODO fix hackey -1
-        return player.get_layout(), self.players[playerIdx - 1].get_layout(), self.game_piles, player.cards_left(), self.players[playerIdx - 1].cards_left()
+        thisPlayer = self.players[playerIdx]
+        otherPlayerInfo = {}
+        for i, player in enumerate(self.players):
+            if i != playerIdx:
+                otherPlayerInfo[i] = {'layout'   : player.get_layout(),
+                                    'cardsLeft': player.cards_left()}
+        return thisPlayer.get_layout(), thisPlayer.cards_left(), self.game_piles.copy(), otherPlayerInfo

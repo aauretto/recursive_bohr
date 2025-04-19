@@ -63,7 +63,8 @@ class Client(BaseClient):
         # Main Thread Handles Display
         self.display.run()
         self.status = Client.ClientStatus.STOPPING
-
+        
+        # Wait for the sender and listener to finish
         self.sender.join()
         self.listener.join()
         
@@ -76,6 +77,7 @@ class Client(BaseClient):
         """
         while self.status != Client.ClientStatus.STOPPING:
             msg = self.msgQueue.get(block=True)
+            # Falsey values used as sentinels
             if msg:
                 if not self.tx_message(msg) or msg == ("quitting",):
                     self.status = Client.ClientStatus.STOPPING
@@ -106,7 +108,7 @@ class Client(BaseClient):
             self.display.stop_display()
             raise UnableToConnectError(serverAddr, port) #TODO consider that this does not actually error ???
 
-
+        # Receive messages until the we are done
         while self.status != Client.ClientStatus.STOPPING:
             self.rx_message()
 
@@ -133,8 +135,6 @@ class Client(BaseClient):
         -------
         None
         """
-        print(f"Client [{threading.get_ident()}] received {msg} | {self.status}") #TODO remove
-        
         # Messages that should be handled the same regardless of client status
         match msg:
             case ("game-stopped", "player-left", who):
@@ -180,8 +180,6 @@ class Client(BaseClient):
                     self.state.update_state(csp)
                     self.status = Client.ClientStatus.PLAYING
                     self.display.done_setup()
-                    # Makeshift countdown
-                    print("DEBUG > GOT INITIAL")
                     self.msgQueue.put(("no-animations",))
                 case _:
                     print(f"Received message {msg} in READYING phase")
@@ -211,7 +209,6 @@ class Client(BaseClient):
 
                 case _:
                     print(f"Unable to parse message: {msg} while PLAYING")
-                    # TODO do we gracefully exit here, what else would we do
         else:
             print(f"Print in bad Client state while receiving {msg}")
 

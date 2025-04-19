@@ -11,6 +11,12 @@ class BaseJob(ABC):
         """
         Constructor
 
+        Parameters
+        ----------
+        startImmediately: bool
+            Whether the flip should start immediately or will need to be
+            triggered by another job
+
         Notes
         -----
         Establishes state variables needed for all Animation jobs:
@@ -60,6 +66,9 @@ class BaseJob(ABC):
         self.successors.append(job)
 
     def start(self):
+        """
+        Sets the started state to be True
+        """
         self.started = True
 
     def finish(self):
@@ -84,7 +93,7 @@ class JobWithTrigger(BaseJob):
     """
     def __init__(self, job, trigger, action, startImmediately=True, triggerOnce=False):
         """
-        Constructor
+        Constructor #TODO Aiden
 
         Parameters
         ----------
@@ -123,7 +132,7 @@ class JobWithTrigger(BaseJob):
             self.action()
             self.triggered = True
 
-def DELAY_TRIGGER(delay):
+def DELAY_TRIGGER(delay): #TODO why caps
     """
     Creates a predicate that when evaluated returns whether delay seconds 
     have passed since time of first evaluation.
