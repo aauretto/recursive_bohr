@@ -342,7 +342,6 @@ class Display():
         startTime = time.time()
         while (time.time() - startTime) <= duration and self.status != Display.DisplayStatus.STOPPING:
             self.clock.tick(FPS)
-            pygame.display.flip()
         
             self.screen.fill(self.backgroundColor)
             self.__update_layouts()
@@ -355,7 +354,7 @@ class Display():
                     self.status = Display.DisplayStatus.STOPPING
                     self.msgQueue.put(("quitting",))
                     return
-
+            pygame.display.flip()
 
     def stop_display(self):
         """

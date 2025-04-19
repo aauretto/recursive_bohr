@@ -359,8 +359,8 @@ class Server(BaseServer):
             else:
                 self.broadcast_message(('game-stopped', reason, data))  
 
-SERVER_ADDR = "localhost"
-# SERVER_ADDR = "0.0.0.0"
+# SERVER_ADDR = "localhost"
+SERVER_ADDR = "0.0.0.0"
 SERVER_PORT = 9000
 
 def main():
