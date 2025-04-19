@@ -43,7 +43,8 @@ class Deck():
 
     def deal(self, numToDeal):
         """
-         Removes and returns the top numToDeal cards from the deck
+         Removes and returns the top numToDeal cards from the deck.
+         Errors if you try to deal more cards than are in the deck.
          
          Parameters
          ----------
@@ -55,11 +56,10 @@ class Deck():
          toRet: list(Card) 
              a list of cards of length numToDeal
          """
-        # TODO this will never except, how do we want to handle this
-        try: 
-            toRet = self.theDeck[0:numToDeal]
-        except:
+        if numToDeal > self.__len__():
             raise EmptyDeckError("Deck is empty")
+        
+        toRet = self.theDeck[0:numToDeal]
         self.theDeck = self.theDeck[numToDeal:]
         return toRet
     
