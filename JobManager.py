@@ -261,7 +261,7 @@ class JobManager():
         with self.jobLock:
             self.allTopics[topic] = Topic(priority)
 
-    def register_job(self, job, topic, drawOrder=TopicOrder.AFTER):
+    def register_job(self, job, topic, stepOrder=TopicOrder.AFTER):
         """
         ## TODO AIDEN FIX PLEASE
         Register an job under a topic with some topicPiority.
@@ -271,7 +271,7 @@ class JobManager():
         registered jobs in the topic. 
         """
         with self.jobLock:
-            self.allTopics[topic].register_job(job, drawOrder)
+            self.allTopics[topic].register_job(job, stepOrder)
             
     def step_jobs(self):
         self.lastFrameJobCt = self.thisFrameJobCt

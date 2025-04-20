@@ -207,6 +207,10 @@ class Client(BaseClient):
 
                 case ("flip", cards, pileIdxs): 
                     self.display.flip_cards(cards, pileIdxs, 1)
+                
+                case ("bad-move", _, pileIdx):
+                    self.display.bad_move(pileIdx)
+
 
                 case _:
                     print(f"Unable to parse message: {msg} while PLAYING")

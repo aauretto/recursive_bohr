@@ -270,7 +270,8 @@ class Server(BaseServer):
             # Otherwise we tell the client they made a bad move
             self.tx_message(client, 
                             ("bad-move", 
-                            self.__package_gamestate(client)))
+                            playAction.layoutIdx, 
+                            playAction.midPileIdx))
 
     def handle_connection(self):
         """

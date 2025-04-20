@@ -282,6 +282,16 @@ class Display():
         self.animationManager.register_job(moveJob, "dynamic")
         self.animationManager.register_job(holdJob, "static", TopicOrder.BEFORE)
 
+    def bad_move(self, pileIdx):
+        img = pygame.image.load("./images/not_allowed.png")
+        img = pygame.transform.scale(img, (50,50))
+
+        # Show image below the mid-pile we tried to play on
+        xpos = self.xpos["mid"][pileIdx]
+        ypos = self.vpos["mid"] + 100
+        showX = Animations.ShowImage(self.screen, img, (xpos,ypos), duration=0.5)
+        self.animationManager.register_job(showX, "static")
+
     def done_setup(self):
         """
         Set the display status to be running
@@ -324,25 +334,33 @@ class Display():
         countDownManager = JobManager()
         countDownManager.create_topic("splashes")
 
+        goImg = pygame.image.load("./images/go.png")
+        goImg = pygame.transform.scale(goImg, (600,450))
+
+
         # Each "showX" job displays a digit and queues the next digit to display after a third of the countdown has passed
-        show3inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "3", (self.width // 2 - 100, 260))
-        show2inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "2", (self.width // 2      , 260))
-        show1inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "1", (self.width // 2 + 100, 260))
+        show3inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "3", (self.width // 2 - 100, 260), textColor=(255,0,0))
+        show2inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "2", (self.width // 2      , 260), textColor=(255,0,0))
+        show1inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "1", (self.width // 2 + 100, 260), textColor=(255,0,0))
+        showGo     = Animations.FlipAnimation(self.screen, (self.width // 2, self.height // 2), goImg, 1, startImmediately=False)
+
 
         show1 = JobWithTrigger(show1inner, DELAY_TRIGGER(duration/3), lambda: show1.finish(), startImmediately=False, triggerOnce=True)
         show2 = JobWithTrigger(show2inner, DELAY_TRIGGER(duration/3), lambda: show1.start(), startImmediately=False, triggerOnce=True)
         show3 = JobWithTrigger(show3inner, DELAY_TRIGGER(duration/3), lambda: show2.start(), startImmediately=True, triggerOnce=True)
 
+        show1.add_successor(showGo)
         show1.add_dependent(show2)
         show1.add_dependent(show3)
 
-        countDownManager.register_job(show3, "splashes")
-        countDownManager.register_job(show2, "splashes")
-        countDownManager.register_job(show1, "splashes")
+        countDownManager.register_job(show3,  "splashes")
+        countDownManager.register_job(show2,  "splashes")
+        countDownManager.register_job(show1,  "splashes")
+        countDownManager.register_job(showGo, "splashes")
 
 
         startTime = time.time()
-        while (time.time() - startTime) <= duration and self.status != Display.DisplayStatus.STOPPING:
+        while not countDownManager.all_animations_stopped() and self.status != Display.DisplayStatus.STOPPING:
             self.clock.tick(FPS)
         
             self.screen.fill(self.backgroundColor)

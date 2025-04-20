@@ -30,13 +30,22 @@ class ShowImage(BaseJob):
         self.image = image
         self.rect = image.get_rect(center = pos)
         self.screen = screen
+        self.startTime = None
+        self.duration = duration
 
     def step(self):
         """
         Show image at position pos
         Overriden from BaseJob
         """
+        if self.startTime is None:
+            self.startTime = time.time()
+        
         self.screen.blit(self.image, self.rect)
+        
+        if self.duration is not None and \
+           time.time() - self.startTime >= self.duration:
+                self.finish()
 
 class LinearMove(BaseJob):
     """
