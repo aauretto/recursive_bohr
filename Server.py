@@ -21,7 +21,7 @@ class Server(BaseServer):
         """
         SETUP   = 0
         RUNNING = 1
-        STOPPED = 2
+        STOPPING = 2
 
     def __init__(self, host, port, numPlayers=2, numGamePiles=2, layoutSize=4):
         """
@@ -349,8 +349,8 @@ class Server(BaseServer):
         data: any
             the data to include in the message
         """
-        if self.serverStatus != Server.ServerStatus.STOPPED:
-            self.serverStatus = Server.ServerStatus.STOPPED
+        if self.serverStatus != Server.ServerStatus.STOPPING:
+            self.serverStatus = Server.ServerStatus.STOPPING
             if reason == "winner":
                 # in this case, data == client socket that won
                 self.broadcast_gamestate("new")
