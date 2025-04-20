@@ -287,7 +287,7 @@ class Display():
         Set the display status to be running
         """
         self.status = Display.DisplayStatus.RUNNING
-        self.msgQueue.put(('no-animations',))
+        self.msgQueue.put(('done-moving',))
 
     def show_first_frame(self):
         """
@@ -414,7 +414,7 @@ class Display():
 
             # Only want to flip when nothing is going on
             if self.animationManager.all_animations_stopped():
-                self.msgQueue.put(("no-animations",))
+                self.msgQueue.put(("done-moving",))
 
             # Event Loop
             for event in pygame.event.get():
