@@ -176,7 +176,7 @@ class Server(BaseServer):
                     self.handle_play(client, playAction)
                 case ("quitting",):
                     self.__stop_game("player-left", self.currentPlayers[client]['uname'])
-                case ("no-animations",):
+                case ("done-moving",):
                     clientIdx = self.currentPlayers[client]["id"]
                     self.currentPlayers[client]['animating'] = False
                     (gameOver, winnerId) = self.state.game_over()
