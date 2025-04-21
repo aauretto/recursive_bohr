@@ -82,6 +82,7 @@ class BaseServer:
         rejClients = []
         for _ in range(nConx):
             conx, addr = self.sock.accept() # Let them in then close the door
+            print(f"Rejecting connection from {addr[0]}")
             rejClients.append(conx)
             conx.close()
         return rejClients
@@ -99,6 +100,7 @@ class BaseServer:
         newClients = []
         for _ in range(nConx):
             conx, addr = self.sock.accept() # wait for connection
+            print(f"Connection accepted from {addr[0]}")
             conx.setblocking(0)
             self.clients.append(conx)        
             newClients.append(conx)

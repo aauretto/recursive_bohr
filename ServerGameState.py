@@ -149,7 +149,6 @@ class ServerGameState:
 
         for i in range(len(self.players)):
             if not self.players[i].deck.is_empty():
-                print(f"Dealt a card form player {i}")
                 dealtArray = self.players[i].deck.deal(1)
                 self.game_piles[i] = dealtArray[0]
                 flippedPlayers.append(i)
