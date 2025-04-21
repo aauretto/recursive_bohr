@@ -225,7 +225,8 @@ class Client(BaseClient):
         self.display.stop_display() 
 
 if __name__ == "__main__":
-    print("RUNNING CODE (WATCH OUT)")   
+    ip = input("Enter the IP to connect to: ")   
+    port = int(input("Enter the port to connect to: "))   
+    
     name = input('Player Name: ')
-    myCli = Client("localhost", 9000, name)
-    # myCli = Client("10.0.0.138", 9000, name)
+    myCli = Client(ip, port, name)
