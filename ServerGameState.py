@@ -24,6 +24,7 @@ class Player:
          """
         self.deck = deck
         self.name = name
+        self.deck.deal(20) # DEMO
         self.id = id
         self._layout = deck.deal(layoutSize)
 
