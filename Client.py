@@ -147,6 +147,7 @@ class Client(BaseClient):
         if self.status.get_status() == Client.ClientStatusValue.STOPPING:
             # Kill display here and main thread will terminate
             self.display.stop_display()
+            self.msgQueue.put(None) 
             raise UnableToConnectError(serverAddr, port) #TODO consider that this does not actually error ???
 
         # Receive messages until the we are done
@@ -264,6 +265,7 @@ class Client(BaseClient):
         """
         self.status.update_status(Client.ClientStatusValue.STOPPING)
         self.display.stop_display() 
+        self.msgQueue.put(None) 
 
 if __name__ == "__main__":
     ip = input("Enter the IP to connect to: ")   
