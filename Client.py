@@ -189,17 +189,27 @@ class Client(BaseClient):
         -------
         None
         """
-        # Messages that should be handled the same regardless of client status
         match msg:
+            # Messages that should be handled the same regardless of client status
             case ("game-stopped", "player-left", who):
                     self.__stop_game()
                     print(f"{who} left the game. Closing...")
             case _:
-                self.__handle_state_specific_msg(msg)
+                if self.__status.get_status() == Client.ClientStatusValue.SETUP:
+                    self.__handle_setup_message(msg)
+                    
+                elif self.__status.get_status() == Client.ClientStatusValue.READYING:
+                    self.__handle_readying_message(msg)
 
-    def __handle_state_specific_msg(self, msg):      
+                elif self.__status.get_status() == Client.ClientStatusValue.PLAYING:
+                    self.__handle_playing_message(msg)
+
+                else:
+                    print(f"Print in bad Client state while receiving {msg}")
+
+    def __handle_setup_message(self, msg):
         """
-        Handles a message that only is applicable when in a certain state
+        Handles a message intended only for the setup state
 
         Parameters
         ----------
@@ -209,66 +219,87 @@ class Client(BaseClient):
         Returns
         -------
         None
-        """  
-        if self.__status.get_status() == Client.ClientStatusValue.SETUP:
-            match msg:
-                case ("ip-info", ip):
-                    print(f"[Server] > Connected to {ip}")
-                    print(f"[Server] > Waiting for opponent to join...")
+        """ 
+        match msg:
+            case ("ip-info", ip):
+                print(f"[Server] > Connected to {ip}")
+                print(f"[Server] > Waiting for opponent to join...")
 
-                case ("name-request",):
-                    self.__msgQueue.put(("player-name", self.__name))
+            case ("name-request",):
+                self.__msgQueue.put(("player-name", self.__name))
 
-                case ("all-names", players):
-                    self.__display.set_names(players)
-                    self.__status.update_status(Client.ClientStatusValue.READYING)
-                    # Should go through msgQueue
-                    self.__msgQueue.put(("ready",))
-                case _:
-                    print(f"Received bad message {msg} in SETUP phase")
+            case ("all-names", players):
+                self.__display.set_names(players)
+                self.__status.update_status(Client.ClientStatusValue.READYING)
+                # Should go through msgQueue
+                self.__msgQueue.put(("ready",))
+            case _:
+                print(f"Received bad message {msg} in SETUP phase")
 
-        elif self.__status.get_status() == Client.ClientStatusValue.READYING:
-            match msg:
-                case ("state", "initial", csp): 
-                    self.__state.update_state(csp)
-                    self.__display.set_initial()
-                    self.__status.update_status(Client.ClientStatusValue.PLAYING)
-                    self.__display.done_setup()
+    def __handle_readying_message(self, msg):
+        """
+        Handles a message intended only 
 
-                case _:
-                    print(f"Received bad message {msg} in READYING phase")
+        Parameters
+        ----------
+        msg: any
+            The received message
+        
+        Returns
+        -------
+        None
+        """ 
+        match msg:
+            case ("state", "initial", csp): 
+                self.__state.update_state(csp)
+                self.__display.set_initial()
+                self.__status.update_status(Client.ClientStatusValue.PLAYING)
+                self.__display.done_setup()
 
-        elif self.__status.get_status() == Client.ClientStatusValue.PLAYING:
-            match msg:
-                case ("game-stopped", "draw", _):
-                    self.__gameResult = "draw"
-                    self.__stop_game()
+            case _:
+                print(f"Received bad message {msg} in READYING phase")
 
-                case ("game-stopped", "won", _):
-                    self.__gameResult = "won"
-                    self.__stop_game()
+    def __handle_playing_message(self, msg):
+        """
+        Handles a message intended for the playing phase
 
-                case ("game-stopped", "lost", winner):
-                    self.__gameResult = "lost"
-                    self.__stop_game()
+        Parameters
+        ----------
+        msg: any
+            The received message
+        
+        Returns
+        -------
+        None
+        """ 
+        match msg:
+            case ("game-stopped", "draw", _):
+                self.__gameResult = "draw"
+                self.__stop_game()
 
-                case ("state", "new", csp): 
-                    self.__state.update_state(csp)
+            case ("game-stopped", "won", _):
+                self.__gameResult = "won"
+                self.__stop_game()
 
-                case ("move", srcLayout, srcIdx, destLayout, destIdx): 
-                    self.__display.move_card(srcLayout, srcIdx, destLayout, destIdx, 0.5)
+            case ("game-stopped", "lost", winner):
+                self.__gameResult = "lost"
+                self.__stop_game()
 
-                case ("flip", cards, pileIdxs): 
-                    self.__display.flip_cards(cards, pileIdxs, 1)
-                
-                case ("bad-move", _, pileIdx):
-                    self.__display.bad_move(pileIdx)
+            case ("state", "new", csp): 
+                self.__state.update_state(csp)
 
+            case ("move", srcLayout, srcIdx, destLayout, destIdx): 
+                self.__display.move_card(srcLayout, srcIdx, destLayout, destIdx, 0.5)
 
-                case _:
-                    print(f"Unable to parse message: {msg} while PLAYING")
-        else:
-            print(f"Print in bad Client state while receiving {msg}")
+            case ("flip", cards, pileIdxs): 
+                self.__display.flip_cards(cards, pileIdxs, 1)
+            
+            case ("bad-move", _, pileIdx):
+                self.__display.bad_move(pileIdx)
+
+            case _:
+                print(f"Unable to parse message: {msg} while PLAYING")
+             
 
     #*********************************************************************#
     #         Function for gracefully ending the game and closing         #

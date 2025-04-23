@@ -133,38 +133,64 @@ class Server(BaseServer):
                 The message recieved from the client
 
             """
-            #TODO make a handle state specific message
             if self.__serverStatus == Server.ServerStatus.SETUP:
-                # We only want to handle these types of messages in the SETUP phase
-                match msg:
-                    case ("player-name", name):
-                        self.__currentPlayers[client]["uname"] = name
-                        if self.__all_named():
-                            self.broadcast_message(("all-names", self.__player_names()))
-                    case ("ready",):
-                        self.__currentPlayers[client]['status'] = Server.ClientStatus.READY
-                        if self.__all_ready():
-                            self.__serverStatus = Server.ServerStatus.RUNNING
-                    case ("quitting",):
-                        self.__stop_game("player-left", self.__currentPlayers[client]['uname'])
-                    case _:
-                        print(f"Received bad message {msg} in SETUP phase")
+                self.__handle_setup_message(client, msg)
         
             elif self.__serverStatus == Server.ServerStatus.RUNNING:
-                # Handle these messages while the game is running
-                match msg:
-                    case ("play", playAction):    
-                        self.__handle_play(client, playAction)
-                    case ("quitting",):
-                        self.__stop_game("player-left", self.__currentPlayers[client]['uname'])
-                    case ("done-moving",):
-                        self.__currentPlayers[client]['animating'] = False
-                        (gameOver, winnerId) = self.__state.game_over()
-                        if gameOver:
-                            self.__terminate_game(winnerId)
-                        else:
-                            self.__flip_if_able()
+                self.__handle_running_message(client, msg)
 
+    def __handle_setup_message(self, client, msg):
+        """
+        Handles message intended for the setup phase
+
+        Parameters
+        ----------
+        client: socket.socket
+            The socket of the client who sent the msg
+        msg: any
+            The message recieved from the client
+
+        """
+        match msg:
+            case ("player-name", name):
+                self.__currentPlayers[client]["uname"] = name
+                if self.__all_named():
+                    self.broadcast_message(("all-names", self.__player_names()))
+            case ("ready",):
+                self.__currentPlayers[client]['status'] = Server.ClientStatus.READY
+                if self.__all_ready():
+                    self.__serverStatus = Server.ServerStatus.RUNNING
+            case ("quitting",):
+                self.__stop_game("player-left", self.__currentPlayers[client]['uname'])
+            case _:
+                print(f"Received bad message {msg} in SETUP phase")
+        
+    def __handle_running_message(self, client, msg):
+        """
+        Handles messages intended for the running phase
+
+        Parameters
+        ----------
+        client: socket.socket
+            The socket of the client who sent the msg
+        msg: any
+            The message recieved from the client
+
+        """
+        match msg:
+            case ("play", playAction):    
+                self.__handle_play(client, playAction)
+            case ("quitting",):
+                self.__stop_game("player-left", self.__currentPlayers[client]['uname'])
+            case ("done-moving",):
+                self.__currentPlayers[client]['animating'] = False
+                (gameOver, winnerId) = self.__state.game_over()
+                if gameOver:
+                    self.__terminate_game(winnerId)
+                else:
+                    self.__flip_if_able()
+
+     
     def __handle_play(self, client, playAction):
             """
             Handles when a client attempts to take an action
