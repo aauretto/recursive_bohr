@@ -83,8 +83,6 @@ class Display():
         # Create the dict for looking up the images of the cards
         self.__cardLookup = self.__create_card_img_dict()
 
-        # TODO this needs to be fixed / documented / shaped
-        self.__nMidPiles, self.__nTheirPiles, self.__nMyPiles = self.__gameState.shape()
 
         self.__vpos = {
                       "them" : self.__height - (OPP_VERT_POS * (self.__height)) 
@@ -95,6 +93,8 @@ class Display():
                                              // (VERT_DIVS),
                     }
         
+        # Get the initial state of the game to display card x positions correctly
+        self.__nMidPiles, self.__nTheirPiles, self.__nMyPiles = self.__gameState.shape()
         self.__xpos = None
         self.__pile_xpos()
 
@@ -233,16 +233,20 @@ class Display():
         -------
         None
         """
-        # TODO inline comments
+        # Get the flip image, scale it to the max size we want it to show as
         middle = (self.__width // 2, self.__height // 2)
         img = pygame.image.load("./images/flip.png")
         szW, szH = img.get_size()
         img = pygame.transform.scale(img, (szW * 2, szH * 2))
+
+        # Create the flip animation and register it
         flipAnimation = Animations.FlipAnimation(self.__screen, middle, img, 1)
         self.__animationManager.register_job(flipAnimation, "splashes")
 
+        # Loop through the cards (and their locations) that are being flipped
         for (card, pileIdx) in zip(cards, pileIdxs):
-
+            
+            # TODO Aiden what is happening here
             oldImg, _ = self.__cardObjs["mid"][pileIdx]
             newImg = self.__cardLookup[str(card)]
         
@@ -453,8 +457,7 @@ class Display():
                 if event.type == pygame.QUIT:
                     # Stops sender and sends out quitting msg to server
                     self.__msgQueue.put(("quitting",))
-                    # TODO maybe call stop game
-                    self.__status.update_status(Display.DisplayStatusValue.STOPPING)
+                    self.stop_display()
 
                 # Select card when mouse button is pressed
                 if event.type == pygame.MOUSEBUTTONDOWN:

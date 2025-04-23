@@ -26,7 +26,6 @@ class ShowImage(BaseJob):
             The center (x,y) position in pixels to display the image at
         """
         super().__init__(startImmediately)
-        self.__pos = pos #TODO
         self.__image = image
         self.__rect = image.get_rect(center = pos)
         self.__screen = screen
