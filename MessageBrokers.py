@@ -23,9 +23,10 @@ class LenAndPayload():
         Parameters
         ----------
         headerLen: int
-            #TODO Aiden
+            the number of bytes used to encode the length of the payload
+            of a message
         """
-        self.headerLen = 4
+        self.__headerLen = 4
 
     def tx(self, sock, msg):
         """
@@ -75,7 +76,7 @@ class LenAndPayload():
             The data to serialize
         """
         payload = pickle.dumps(data)
-        return len(payload).to_bytes(self.headerLen, byteorder='big') + payload
+        return len(payload).to_bytes(self.__headerLen, byteorder='big') + payload
 
     def __consume_msg(self, sock):
         """
@@ -87,7 +88,7 @@ class LenAndPayload():
             The socket to consume the message from
         """
         # Get header / message len
-        dataLen = int.from_bytes(sock.recv(self.headerLen), byteorder='big')
+        dataLen = int.from_bytes(sock.recv(self.__headerLen), byteorder='big')
 
         # Grab next n bytes where n is length of message and decode them
         rawPayload = b''

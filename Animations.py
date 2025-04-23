@@ -26,25 +26,24 @@ class ShowImage(BaseJob):
             The center (x,y) position in pixels to display the image at
         """
         super().__init__(startImmediately)
-        self.pos = pos
-        self.image = image
-        self.rect = image.get_rect(center = pos)
-        self.screen = screen
-        self.startTime = None
-        self.duration = duration
+        self.__image = image
+        self.__rect = image.get_rect(center = pos)
+        self.__screen = screen
+        self.__startTime = None
+        self.__duration = duration
 
     def step(self):
         """
         Show image at position pos
         Overriden from BaseJob
         """
-        if self.startTime is None:
-            self.startTime = time.time()
+        if self.__startTime is None:
+            self.__startTime = time.time()
         
-        self.screen.blit(self.image, self.rect)
+        self.__screen.blit(self.__image, self.__rect)
         
-        if self.duration is not None and \
-           time.time() - self.startTime >= self.duration:
+        if self.__duration is not None and \
+           time.time() - self.__startTime >= self.__duration:
                 self.finish()
 
 class LinearMove(BaseJob):
@@ -69,15 +68,15 @@ class LinearMove(BaseJob):
             The image to draw on our screen
         """
         super().__init__(startImmediately)
-        self.startPos = startPos
-        self.endPos   = endPos
+        self.__startPos = startPos
+        self.__endPos   = endPos
         
-        self.img    = img
-        self.rect   = img.get_rect(center = startPos)
-        self.screen = screen
+        self.__img    = img
+        self.__rect   = img.get_rect(center = startPos)
+        self.__screen = screen
 
-        self.duration  = duration
-        self.startTime = None
+        self.__duration  = duration
+        self.__startTime = None
 
     def step(self):
         """
@@ -85,20 +84,20 @@ class LinearMove(BaseJob):
         Each call to .step() advances the animation by one frame.
         """
         # Start job at time of first tick
-        if not self.startTime:
-            self.startTime = time.time()
+        if not self.__startTime:
+            self.__startTime = time.time()
 
         # Percent through animation
-        elapsed = time.time() - self.startTime
-        prog    = min(elapsed / self.duration, 1) 
+        elapsed = time.time() - self.__startTime
+        prog    = min(elapsed / self.__duration, 1) 
 
         # Update pos
-        newX = self.startPos[0] + (self.endPos[0] - self.startPos[0]) * prog
-        newY = self.startPos[1] + (self.endPos[1] - self.startPos[1]) * prog
+        newX = self.__startPos[0] + (self.__endPos[0] - self.__startPos[0]) * prog
+        newY = self.__startPos[1] + (self.__endPos[1] - self.__startPos[1]) * prog
 
         # Draw image in new pos
-        self.rect.center = (newX, newY)
-        self.screen.blit(self.img, self.rect)
+        self.__rect.center = (newX, newY)
+        self.__screen.blit(self.__img, self.__rect)
 
         if prog >= 1:
             self.finish()
@@ -126,35 +125,35 @@ class FlipAnimation(BaseJob):
             triggered by another job
         """
         super().__init__(startImmediately)
-        self.pos = pos
+        self.__pos = pos
         
-        self.img       = img
-        self.startSize = img.get_size()
+        self.__img       = img
+        self.__startSize = img.get_size()
         
-        self.screen    = screen
-        self.duration  = duration
-        self.startTime = None
+        self.__screen    = screen
+        self.__duration  = duration
+        self.__startTime = None
 
     def step(self):
         """
         TODO: REAASONABLE DOCUMENTATION
         """
         # Start job at time of first tick
-        if not self.startTime:
-            self.startTime = time.time()
+        if not self.__startTime:
+            self.__startTime = time.time()
 
         # Percent through animation
-        elapsed = time.time() - self.startTime
-        prog    = min(elapsed / self.duration, 1) 
+        elapsed = time.time() - self.__startTime
+        prog    = min(elapsed / self.__duration, 1) 
 
         # Update size
-        dimX = self.startSize[0] * prog
-        dimY = self.startSize[1] * prog
+        dimX = self.__startSize[0] * prog
+        dimY = self.__startSize[1] * prog
 
         # Draw image in new pos
-        tmpImg = pygame.transform.scale(self.img, (dimX, dimY))
+        tmpImg = pygame.transform.scale(self.__img, (dimX, dimY))
         tmpImg.set_alpha(255 * (1 - prog))
-        self.screen.blit(tmpImg, tmpImg.get_rect(center = self.pos))
+        self.__screen.blit(tmpImg, tmpImg.get_rect(center = self.__pos))
 
         if prog >= 1:
             self.finish()
@@ -174,7 +173,7 @@ class OverlayAndText(BaseJob):
         screen: pygame.display
             The screen on which to draw our animation
         bgColor: tuple(int, int, int, int)
-            RGBA code for color to fill screen with
+            RGBA code for color to fill screen with__
         test: str
             Text to display
         textPos: tuple(int, int)
@@ -188,24 +187,24 @@ class OverlayAndText(BaseJob):
             triggered by another job
         """
         super().__init__(startImmediately)
-        self.screen = screen
+        self.__screen = screen
 
-        width = self.screen.get_width()
-        height = self.screen.get_height()
+        width = self.__screen.get_width()
+        height = self.__screen.get_height()
         textXpos, textYpos = textPos
 
-        self.overlay = pygame.Surface((width, height), pygame.SRCALPHA)
-        self.overlay.fill(bgColor)
+        self.__overlay = pygame.Surface((width, height), pygame.SRCALPHA)
+        self.__overlay.fill(bgColor)
         font = pygame.font.SysFont(None, fontSz)
         
         # Get rect to center it
-        self.textSurf = font.render(text, True, textColor)  # True = anti-aliasing
-        self.textRect = self.textSurf.get_rect(center=(textXpos, textYpos))
+        self.__textSurf = font.render(text, True, textColor)  # True = anti-aliasing
+        self.__textRect = self.__textSurf.get_rect(center=(textXpos, textYpos))
 
 
     def step(self):
         """
         Paint overlay then put text on top of that
         """
-        self.screen.blit(self.overlay, (0,0))
-        self.screen.blit(self.textSurf, self.textRect)
+        self.__screen.blit(self.__overlay, (0,0))
+        self.__screen.blit(self.__textSurf, self.__textRect)

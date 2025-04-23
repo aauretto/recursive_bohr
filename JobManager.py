@@ -25,10 +25,16 @@ class BaseJob(ABC):
         dependents : list(BaseAnimationJob)
             List of jobs that we want to finish with us
         """
-        self.started = startImmediately
-        self.finished = False
-        self.successors = []
-        self.dependents = []
+        self.__started = startImmediately
+        self.__finished = False
+        self.__successors = []
+        self.__dependents = []
+
+    def is_started(self):
+        return self.__started
+    
+    def is_finished(self):
+        return self.__finished
 
     @abstractmethod
     def step(self):
@@ -51,7 +57,7 @@ class BaseJob(ABC):
             The job to kill when we are done with this animation. The job's 
             .finish() function will be called.
         """
-        self.dependents.append(job)
+        self.__dependents.append(job)
 
     def add_successor(self, job):
         """
@@ -63,13 +69,13 @@ class BaseJob(ABC):
             The job to start when we are done with this animation. The job's 
             .finish() function will be called.
         """
-        self.successors.append(job)
+        self.__successors.append(job)
 
     def start(self):
         """
         Sets the started state to be True
         """
-        self.started = True
+        self.__started = True
 
     def finish(self):
         """
@@ -80,10 +86,10 @@ class BaseJob(ABC):
         Unless overridden, this will stop our dependents, their dependents,
         and so-on.
         """
-        self.finished = True
-        for job in self.dependents:
+        self.__finished = True
+        for job in self.__dependents:
             job.finish()
-        for job in self.successors:
+        for job in self.__successors:
             job.start()
 
 class JobWithTrigger(BaseJob):
@@ -113,11 +119,11 @@ class JobWithTrigger(BaseJob):
         """
         super().__init__(startImmediately)
 
-        self.job = job
-        self.trigger = trigger
-        self.action = action 
-        self.triggerOnce = triggerOnce
-        self.triggered = False
+        self.__job = job
+        self.__trigger = trigger
+        self.__action = action 
+        self.__triggerOnce = triggerOnce
+        self.__triggered = False
 
     def step(self):
         """
@@ -127,10 +133,10 @@ class JobWithTrigger(BaseJob):
         -------
         None
         """
-        self.job.step()
-        if self.trigger() and not (self.triggered and self.triggerOnce):
-            self.action()
-            self.triggered = True
+        self.__job.step()
+        if self.__trigger() and not (self.__triggered and self.__triggerOnce):
+            self.__action()
+            self.__triggered = True
 
 def DELAY_TRIGGER(delay): #TODO why caps
     """
@@ -180,8 +186,11 @@ class Topic():
             Integer value representing the priority of this topic relative to
             other topics. Lower number = higher priority
         """
-        self.jobs = []
-        self.priority = priority
+        self.__jobs = []
+        self.__priority = priority
+    
+    def get_priority(self):
+        return self.__priority
 
     def register_job(self, job, order):
         """
@@ -200,9 +209,9 @@ class Topic():
         """
         match order:
             case TopicOrder.BEFORE:
-                self.jobs.insert(0, job)
+                self.__jobs.insert(0, job)
             case TopicOrder.AFTER:
-                self.jobs.append(job)
+                self.__jobs.append(job)
     
     def step_jobs(self):
         """
@@ -214,8 +223,8 @@ class Topic():
             The number of jobs we called step on
         """
         jobsStepped = 0
-        for job in self.jobs:
-            if job.started:
+        for job in self.__jobs:
+            if job.is_started():
                 job.step()
                 jobsStepped += 1
         return jobsStepped
@@ -228,7 +237,7 @@ class Topic():
         -------
         None
         """
-        self.jobs = list(filter(lambda j : not j.finished, self.jobs))
+        self.__jobs = list(filter(lambda j : not j.is_finished(), self.__jobs))
             
 class JobManager():
     """
@@ -240,13 +249,13 @@ class JobManager():
         Constructor
         """
         # Lock that protects the job/topic lists in this manager
-        self.jobLock = threading.Lock()
-        self.allTopics = {} # (topic, priority) : jobList
+        self.__jobLock = threading.Lock()
+        self.__allTopics = {} # (topic, priority) : jobList
         
         # Used to determine if we went from nonzero to zero jobs stepped 
         # when step_jobs is called
-        self.thisFrameJobCt = 0
-        self.lastFrameJobCt = 0
+        self.__thisFrameJobCt = 0
+        self.__lastFrameJobCt = 0
 
     def create_topic(self, topic, priority = 0):
         """
@@ -258,40 +267,49 @@ class JobManager():
         topic: any
             Hashable 
         """
-        with self.jobLock:
-            self.allTopics[topic] = Topic(priority)
+        with self.__jobLock:
+            self.__allTopics[topic] = Topic(priority)
 
     def register_job(self, job, topic, stepOrder=TopicOrder.AFTER):
         """
-        ## TODO AIDEN FIX PLEASE
-        Register an job under a topic with some topicPiority.
-        Jobs are rendered from BEFORE to AFTER priority. Any job registered
-        with BEFORE priority will be drawn before all previously registered jobs
-        within the topic and AFTER priority will be drawn after previously
-        registered jobs in the topic. 
+        Registers a job with this manager under the provided topic
+
+        ## TODO AIDEN double check PLEASE
+        Parameters
+        ----------
+        job: Animations.TYPE
+            the animation to register
+        topic: str
+            A valid str for a topic created in this manager under which
+            to register the animation
+        stepOrder: TopicOrder.AFTER | TopicOrder.BEFORE
+            Default TopicOrder.AFTER
+            Any job registered with BEFORE priority will be drawn before all 
+            previously registered jobs within the topic and AFTER priority will 
+            be drawn after previouslyregistered jobs in the topic. 
         """
-        with self.jobLock:
-            self.allTopics[topic].register_job(job, stepOrder)
+        with self.__jobLock:
+            self.__allTopics[topic].register_job(job, stepOrder)
             
     def step_jobs(self):
-        self.lastFrameJobCt = self.thisFrameJobCt
-        self.thisFrameJobCt = 0
-        with self.jobLock:
+        self.__lastFrameJobCt = self.__thisFrameJobCt
+        self.__thisFrameJobCt = 0
+        with self.__jobLock:
             # Organize jobs in priority order
-            topics = self.allTopics.values()
-            topics = sorted(topics, key=lambda t : t.priority)
+            topics = self.__allTopics.values()
+            topics = sorted(topics, key=lambda t : t.get_priority())
 
             for topic in topics:
-                self.thisFrameJobCt += topic.step_jobs()
+                self.__thisFrameJobCt += topic.step_jobs()
 
             self.remove_finished()
 
     def remove_finished(self):        
-        for topic in self.allTopics.values():
+        for topic in self.__allTopics.values():
             topic.remove_finished()
                 
     def all_animations_stopped(self):
         """
         Becomes true only on frame when all finish
         """
-        return self.lastFrameJobCt > 0 and self.thisFrameJobCt == 0
+        return self.__lastFrameJobCt > 0 and self.__thisFrameJobCt == 0

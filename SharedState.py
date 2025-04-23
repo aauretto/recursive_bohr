@@ -68,7 +68,7 @@ class ClientState():
         -------
         : ClientState
         """
-        self.monitor = threading.Lock()
+        self.__monitor = threading.Lock()
         self.__gameState = gameState
         self.__hasData = False if gameState is None else True
 
@@ -84,7 +84,7 @@ class ClientState():
         -------
         Overwrites the current state entirely
         """
-        with self.monitor:
+        with self.__monitor:
             self.__gameState = newState
             self.__hasData = False if newState is None else True
 
@@ -95,7 +95,7 @@ class ClientState():
         : bool
             True if the ClientState has data otherwise False
         """
-        with self.monitor:
+        with self.__monitor:
             return self.__hasData
 
     def get_state(self):
@@ -117,7 +117,7 @@ class ClientState():
         theirDeckSize: int
             The number of cards left in their deck
         """
-        with self.monitor:
+        with self.__monitor:
             if not self.__hasData:
                 return [None], [None], [None], [False], 0, 0
             myLayout    = self.__gameState.myLayout.copy()

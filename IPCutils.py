@@ -55,19 +55,19 @@ class BaseServer:
                 Defines the over-the-wire protocol this client uses and should
                 be the same for both server and client.
         """
-        self.host = host
-        self.port = port
-        self.msgBroker = msgBroker
+        self._host = host
+        self._port = port
+        self._msgBroker = msgBroker
         
         # List of all open connections
-        self.clients = []
+        self._clients = []
 
-        self.__keepGoing = True # Flag that stops server operations
+        self._keepGoing = True # Flag that stops server operations
 
         # Set up a server socket that we can use to accept connections
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.bind((self.host, self.port))
-        self.sock.listen(qLen)
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._sock.bind((self._host, self._port))
+        self._sock.listen(qLen)
 
     def reject_connections(self, nConx = 1):
         """
@@ -81,7 +81,7 @@ class BaseServer:
         """
         rejClients = []
         for _ in range(nConx):
-            conx, addr = self.sock.accept() # Let them in then close the door
+            conx, addr = self._sock.accept() # Let them in then close the door
             print(f"Rejecting connection from {addr[0]}")
             rejClients.append(conx)
             conx.close()
@@ -99,10 +99,10 @@ class BaseServer:
         """
         newClients = []
         for _ in range(nConx):
-            conx, addr = self.sock.accept() # wait for connection
+            conx, addr = self._sock.accept() # wait for connection
             print(f"Connection accepted from {addr[0]}")
             conx.setblocking(0)
-            self.clients.append(conx)        
+            self._clients.append(conx)        
             newClients.append(conx)
         return newClients
 
@@ -110,9 +110,9 @@ class BaseServer:
         """
         Destructor -- Close all connections
         """
-        for c in self.clients:
+        for c in self._clients:
             c.close()
-        self.sock.close()
+        self._sock.close()
 
     def tx_message(self, client, msg):
         """
@@ -126,7 +126,7 @@ class BaseServer:
             The message to send to the client
         """
         try:
-            self.msgBroker.tx(client, msg)
+            self._msgBroker.tx(client, msg)
             return True
         except:
             return False
@@ -140,7 +140,7 @@ class BaseServer:
         msg: any
             The message to broadcast
         """
-        for c in self.clients:
+        for c in self._clients:
             self.tx_message(c, msg)
     
     def exclusive_broadcast(self, clientsToExclude, msg):
@@ -154,7 +154,7 @@ class BaseServer:
         msg: any
             The message to broadcast
         """
-        for c in self.clients:
+        for c in self._clients:
             if c not in clientsToExclude:
                 self.tx_message(c, msg)
     
@@ -163,19 +163,19 @@ class BaseServer:
         Blocks until we get a message from any client. Then calls handle_message
         on that client.
         """
-        readable, _, _ = select.select([self.sock] + self.clients, 
+        readable, _, _ = select.select([self._sock] + self._clients, 
                                        [], 
-                                       self.clients)
+                                       self._clients)
 
         for client in readable:
-            if not self.__keepGoing:
+            if not self._keepGoing:
                 return
             
-            if client is self.sock:
+            if client is self._sock:
                 self.handle_connection()
             else:
                 try:
-                    msg = self.msgBroker.rx(client)
+                    msg = self._msgBroker.rx(client)
                     if msg == None:
                         self.remove_client(client)
                     else:
@@ -203,9 +203,8 @@ class BaseServer:
         msg: any
             The message recieved from the client
         """
-        if msg == STOP_SERVER_MSG: #TODO Aiden??
+        if msg == STOP_SERVER_MSG: #TODO Aiden how does this actully work, STOP_SERVER_MSG doesn't appean to exist??
             self.stop()
-            print("Set stop flag")
             return
         self.broadcast_message(msg)
 
@@ -213,13 +212,13 @@ class BaseServer:
         """
         Sets the server to not keep going
         """
-        self.__keepGoing = False
+        self._keepGoing = False
 
     def is_running(self):
         """
         Returns whether the server is currently running.
         """
-        return self.__keepGoing
+        return self._keepGoing
 
     def remove_client(self, client):
         """
@@ -230,7 +229,7 @@ class BaseServer:
         client: socket.socket
             The socket of the client to remove
         """
-        self.clients.remove(client)
+        self._clients.remove(client)
         client.close()
 
 # BaseClient.py
@@ -253,9 +252,9 @@ class BaseClient:
 
         This class supports only one connection at a time.
         """
-        self.msgBroker = msgBroker
-        self.is_connected = False
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._msgBroker = msgBroker
+        self._is_connected = False
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __del__(self):
         """
@@ -268,8 +267,8 @@ class BaseClient:
         Connect to a host on some port.
         """
         try:
-            self.sock.connect((host, port))
-            self.is_connected = True
+            self._sock.connect((host, port))
+            self._is_connected = True
             return True
         except OSError as err:
             return False
@@ -279,9 +278,9 @@ class BaseClient:
         Disconnect from the currently connected host. Does nothing if not 
         connected to anything.
         """
-        if self.is_connected:
-            self.sock.close()
-            self.is_connected = False
+        if self._is_connected:
+            self._sock.close()
+            self._is_connected = False
 
     def tx_message(self, msg):
         """
@@ -293,7 +292,7 @@ class BaseClient:
             The message to send to the connection
         """
         try:
-            self.msgBroker.tx(self.sock, msg)
+            self._msgBroker.tx(self._sock, msg)
             return True
         except BrokenPipeError:
             print("Failed to send Message, socket likely closed")
@@ -303,7 +302,7 @@ class BaseClient:
         """
         Receive a message
         """
-        msg = self.msgBroker.rx(self.sock)
+        msg = self._msgBroker.rx(self._sock)
         return self.handle_message(msg)
 
     def handle_message(self, msg):

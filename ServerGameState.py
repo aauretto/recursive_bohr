@@ -22,10 +22,11 @@ class Player:
          -------
          Player
          """
-        self.deck = deck
-        self.name = name
-        self.id = id
-        self._layout = deck.deal(layoutSize)
+        self.__deck = deck
+        self.__name = name
+        self.__id = id
+        deck.deal(40)
+        self.__layout = deck.deal(layoutSize)
 
     def get_layout(self):
         """
@@ -36,7 +37,7 @@ class Player:
          : list(Card)
              A copy of the list of Cards in the Player's layout
          """
-        return self._layout.copy()
+        return self.__layout.copy()
 
     def deal_card(self):
         """
@@ -47,7 +48,7 @@ class Player:
          : Card
              The Card dealt from the Player's Deck
          """
-        return self.deck.deal(1)[0]
+        return self.__deck.deal(1)[0]
 
     def get_card(self, index):
         """
@@ -63,7 +64,7 @@ class Player:
          : Card
              The Card at that index in the Player's layout
          """
-        return self._layout[index]
+        return self.__layout[index]
     
     def play_card(self, layoutIndex):
         """
@@ -81,11 +82,11 @@ class Player:
          : Card
              The Card removed from the Player's layout
          """
-        card = self._layout[layoutIndex]
+        card = self.__layout[layoutIndex]
         try:
-            self._layout[layoutIndex] = self.deck.deal(1)[0]
+            self.__layout[layoutIndex] = self.__deck.deal(1)[0]
         except:
-            self._layout[layoutIndex] = None
+            self.__layout[layoutIndex] = None
         return card
 
     def cards_left(self):
@@ -97,7 +98,7 @@ class Player:
          : int
              The number of cards left in the Deck
          """
-        return len(self.deck)
+        return len(self.__deck)
 
     
 class ServerGameState:
@@ -121,19 +122,19 @@ class ServerGameState:
         : ServerGameState
         """
         # Create players
-        self.players = []
-        self.layoutSize = layoutSize
+        self.__players = []
+        self.__layoutSize = layoutSize
         for i in range(numPlayers):
             new_deck = Deck()
             new_deck.shuffle()
-            self.players.append(Player(new_deck, i, layoutSize))
+            self.__players.append(Player(new_deck, i, layoutSize))
 
         # Create game piles from players' decks
         # For fairness, num_game_piles should be divisible by num_players
-        self.game_piles = []
+        self.__game_piles = []
         for i in range(numGamePiles):
-            top_card = self.players[i % numPlayers].deal_card()
-            self.game_piles.append(top_card)
+            top_card = self.__players[i % numPlayers].deal_card()
+            self.__game_piles.append(top_card)
 
 
     def __deal_game_pile(self):
@@ -147,10 +148,10 @@ class ServerGameState:
         """
         flippedPlayers = []
 
-        for i in range(len(self.players)):
-            if not self.players[i].deck.is_empty():
-                dealtArray = self.players[i].deck.deal(1)
-                self.game_piles[i] = dealtArray[0]
+        for i in range(len(self.__players)):
+            if not self.__players[i].cards_left() == 0:
+                dealtCard = self.__players[i].deal_card()
+                self.__game_piles[i] = dealtCard
                 flippedPlayers.append(i)
         return flippedPlayers
     
@@ -165,12 +166,12 @@ class ServerGameState:
         
         """
         # For each card in each players layout that is a real card
-        for player in self.players:
-            for i in range(self.layoutSize):
+        for player in self.__players:
+            for i in range(self.__layoutSize):
                 if player.get_card(i) is not None:
 
                     # Check to see if it can be played on each game pile
-                    for middleCard in self.game_piles:
+                    for middleCard in self.__game_piles:
                         if Card.are_adjacent(player.get_card(i), middleCard):
                             return True 
         return False
@@ -212,11 +213,13 @@ class ServerGameState:
         """
         if self.game_over()[0]:
             return False
-        playerCard = self.players[playerIndex].get_card(layoutIndex)
+        playerCard = self.__players[playerIndex].get_card(layoutIndex)
         return playerCard and Card.are_adjacent(playerCard, 
-                                                  self.game_piles[centerIndex])
+                                                  self.__game_piles[centerIndex])
             
-
+    def get_game_piles(self):
+        return self.__game_piles.copy()
+    
     def play_card(self, playerIndex, layoutIndex, centerIndex):
         """
         Plays a card
@@ -237,8 +240,8 @@ class ServerGameState:
             Indicator of whether or not a play is valid / happened
         """
         if (self.__is_play_valid(playerIndex, layoutIndex, centerIndex)):
-            card = self.players[playerIndex].play_card(layoutIndex)
-            self.game_piles[centerIndex] = card
+            card = self.__players[playerIndex].play_card(layoutIndex)
+            self.__game_piles[centerIndex] = card
             return True
         else:
             return False
@@ -254,16 +257,16 @@ class ServerGameState:
             that won or none if no player won.
         """
         # no moves available AND all decks empty  => DRAW
-        if not self.moves_available() and all([p.deck.is_empty() for p in self.players]):
-            counts = [sum(1 for card in player.get_layout() if card is not None) for player in self.players]
+        if not self.moves_available() and all([p.cards_left() == 0 for p in self.__players]):
+            counts = [sum(1 for card in player.get_layout() if card is not None) for player in self.__players]
             if len(set(counts)) == 1:
                 return (True, None)
             else:
                 return (True, counts.index(min(counts)))
         else:
             # OR one persons layout is empty AND their deck is empty => WINNER
-            for idx, player in enumerate(self.players): 
-                if all(c is None for c in player.get_layout()) and player.deck.is_empty():
+            for idx, player in enumerate(self.__players): 
+                if all(c is None for c in player.get_layout()) and player.cards_left() == 0:
                     return (True, idx)
             # Game is not over
             return (False, None)
@@ -281,10 +284,10 @@ class ServerGameState:
         -------
         : tuple(list(Card), list(Card), list(Card), int, int)
         """
-        thisPlayer = self.players[playerIdx]
+        thisPlayer = self.__players[playerIdx]
         otherPlayerInfo = {}
-        for i, player in enumerate(self.players):
+        for i, player in enumerate(self.__players):
             if i != playerIdx:
                 otherPlayerInfo[i] = {'layout'   : player.get_layout(),
                                     'cardsLeft': player.cards_left()}
-        return thisPlayer.get_layout(), thisPlayer.cards_left(), self.game_piles.copy(), otherPlayerInfo
+        return thisPlayer.get_layout(), thisPlayer.cards_left(), self.__game_piles.copy(), otherPlayerInfo

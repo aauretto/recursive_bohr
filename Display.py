@@ -7,6 +7,7 @@ from JobManager import *
 import Animations
 import os
 from enum import Enum
+from threading import Lock
 
 FPS = 60
 CARD_DIR = './images/card_pngs/'
@@ -19,10 +20,54 @@ MY_VERT_POS = 1
 
 class Display():
 
-    class DisplayStatus(Enum):
+    class DisplayStatusValue(Enum):
+        """
+        The possible statuses Display can have
+        """
         SETUP = 0
         RUNNING = 1
         STOPPING = 2
+
+    class DisplayStatus:
+        """
+        A monitor for DisplayStatusValue that also ensures we 
+        cannot be unstopped
+        """
+        def __init__(self):
+            """
+            Constructor
+            """
+            self.__lock = Lock()
+            self.__status = Display.DisplayStatusValue.SETUP
+
+        def update_status(self, status):
+            """
+            Update the DisplayStatus as long as it hasn't already been stopped
+
+            Parameters
+            ----------
+            status: Display.DisplayStatusValue
+                The new display status
+            """
+            with self.__lock:
+                if self.__status != Display.DisplayStatusValue.STOPPING:
+                    self.__status = status
+        
+        def get_status(self):
+            """
+            Getter for the current display status
+
+            Returns
+            -------
+            : Display.DusplayStatusValue
+                the current display status
+            """
+            with self.__lock:
+                return self.__status
+
+    #*********************************************************************#
+    #                      Constructor and Destructor                     #
+    #*********************************************************************#
 
     def __init__(self, clientGame: ClientState, msgQueue: Queue, screenWidth = 1000, screenHeight = 800, backgroundColor=(30, 92, 58)):
         """
@@ -48,66 +93,52 @@ class Display():
             pygame.init()
         
         # Inialize internal variables from parameters
-        self.gameState = clientGame
-        self.msgQueue = msgQueue
-        self.width = screenWidth
-        self.height = screenHeight
-        self.backgroundColor = backgroundColor
+        self.__gameState = clientGame
+        self.__msgQueue = msgQueue
+        self.__width = screenWidth
+        self.__height = screenHeight
+        self.__backgroundColor = backgroundColor
 
         # Initialize other internal variables
-        self.targetCardWidth = self.width // 10
-        self.names = None
-        self.status = Display.DisplayStatus.SETUP
+        self.__targetCardWidth = self.__width // 10
+        self.__names = None
+        self.__status = Display.DisplayStatus()
 
         # Create animation manager that handles drawing and moving cards
-        self.animationManager = JobManager()
-        self.animationManager.create_topic("static", 0)
-        self.animationManager.create_topic("dynamic", 1)
-        self.animationManager.create_topic("splashes", 2)
+        self.__animationManager = JobManager()
+        self.__animationManager.create_topic("static", 0)
+        self.__animationManager.create_topic("dynamic", 1)
+        self.__animationManager.create_topic("splashes", 2)
 
         # Create the dict for looking up the images of the cards
-        self.cardLookup = self.__create_card_img_dict()
+        self.__cardLookup = self.__create_card_img_dict()
 
-        # TODO this needs to be fixed / documented / shaped
-        self.nMidPiles, self.nTheirPiles, self.nMyPiles = self.gameState.shape()
 
-        self.vpos = {
-                      "them" : self.height - (OPP_VERT_POS * (self.height)) 
+        self.__vpos = {
+                      "them" : self.__height - (OPP_VERT_POS * (self.__height)) 
                                              // (VERT_DIVS),
-                      "mid"  : self.height - (MID_VERT_POS * (self.height)) 
+                      "mid"  : self.__height - (MID_VERT_POS * (self.__height)) 
                                              // (VERT_DIVS),
-                      "me"   : self.height - (MY_VERT_POS * (self.height)) 
+                      "me"   : self.__height - (MY_VERT_POS * (self.__height)) 
                                              // (VERT_DIVS),
                     }
         
-        self.xpos = None
-        self.pile_xpos()
+        # Get the initial state of the game to display card x positions correctly
+        self.__nMidPiles, self.__nTheirPiles, self.__nMyPiles = self.__gameState.shape()
+        self.__xpos = None
+        self.__pile_xpos()
 
         # Gets populated by card objects each pass of the run loop
-        self.cardObjs = {
+        self.__cardObjs = {
                           "them" : [],
                           "me"   : [],
                           "mid"  : [],
                         }
 
         # Finalize pygame initialization
-        self.screen = pygame.display.set_mode((self.width, self.height))
+        self.__screen = pygame.display.set_mode((self.__width, self.__height))
         pygame.display.set_caption(f"Spit!") # Default caption
-        self.clock = pygame.time.Clock()
-
-    def pile_xpos(self):
-        self.nMyPiles, self.nTheirPiles, self.nMidPiles = self.gameState.shape()
-        self.xpos = {
-                   "them" : [i * (self.width // (self.nTheirPiles + 1)) for i in range(1, self.nTheirPiles + 1)],
-                   "me"   : [i * (self.width // (self.nMyPiles + 1))    for i in range(1, self.nMyPiles + 1)],
-                   "mid"  : [i * (self.width // (self.nMidPiles + 1))   for i in range(1, self.nMidPiles + 1)],
-               }
-
-    def set_initial(self):
-        """
-        Used to initialize the member layouts the first time
-        """
-        self.__update_layouts()
+        self.__clock = pygame.time.Clock()
 
     def __del__(self):
         """
@@ -115,11 +146,9 @@ class Display():
         """
         pygame.quit()
 
-    def set_names(self, names):
-        """
-        Destructor to gracefully close pygame
-        """
-        self.names = names
+    #*********************************************************************#
+    #         Internal initializers of the cards that can be drawn        #
+    #*********************************************************************#
 
     def __create_card_img_dict(self):
         """
@@ -154,10 +183,219 @@ class Display():
         img = pygame.image.load(CARD_DIR + str(card) + '.png')
         img = pygame.transform.scale(img, 
                             (img.get_width() // \
-                             math.ceil(img.get_width() / self.targetCardWidth), 
+                             math.ceil(img.get_width() / self.__targetCardWidth), 
                              img.get_height() // \
-                             math.ceil(img.get_width() / self.targetCardWidth)))
+                             math.ceil(img.get_width() / self.__targetCardWidth)))
         return img
+
+    #*********************************************************************#
+    #               Functions which display specific states               #
+    #*********************************************************************#
+
+    def run(self):
+        """
+        Wrapper for all the initial displaying and game loop
+        """
+        self.__show_first_frame()
+
+        if self.__status.get_status() != Display.DisplayStatusValue.STOPPING:
+            caption = "Playing Spit! with "
+            for i, name in enumerate(self.__names):
+                caption += name
+                if i < len(self.__names) - 1:
+                    caption += ", "
+        
+            pygame.display.set_caption(caption)
+            self.__do_countdown()
+            self.__run()   
+
+    def __show_first_frame(self):
+        """
+        Set up the initial frame (all blank cards) and allow the player to quit
+        """
+        #TODO Aiden doc this
+        waitingOverlay = Animations.OverlayAndText(self.__screen, (128,128,128,200), "Waiting for Opponent...", (self.__width // 2, 270))
+        waitingManager = JobManager() 
+        waitingManager.create_topic("splashes", 0)
+        waitingManager.register_job(waitingOverlay, "splashes")
+    
+        # Display the first frame 
+        while self.__status.get_status() == Display.DisplayStatusValue.SETUP:
+            self.__clock.tick(FPS)
+            self.__screen.fill(self.__backgroundColor)
+
+            waitingManager.step_jobs()
+
+            # Allow player to quit but no other interaction
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    self.__status.update_status(Display.DisplayStatusValue.STOPPING)
+                    self.__msgQueue.put(("quitting",))
+                    return
+            pygame.display.flip()
+        
+
+    def __do_countdown(self, duration = 3):
+        # 3s Countdown by default
+
+        # Custom manager so we dont muck with animation manager for this class
+        countDownManager = JobManager()
+        countDownManager.create_topic("splashes")
+
+        goImg = pygame.image.load("./images/go.png")
+        goImg = pygame.transform.scale(goImg, (600,450))
+
+
+        # Each "showX" job displays a digit and queues the next digit to display after a third of the countdown has passed
+        show3inner = Animations.OverlayAndText(self.__screen, (0,0,0,0), "3", (self.__width // 2 - 100, 260), textColor=(255,0,0))
+        show2inner = Animations.OverlayAndText(self.__screen, (0,0,0,0), "2", (self.__width // 2      , 260), textColor=(255,0,0))
+        show1inner = Animations.OverlayAndText(self.__screen, (0,0,0,0), "1", (self.__width // 2 + 100, 260), textColor=(255,0,0))
+        showGo     = Animations.FlipAnimation(self.__screen, (self.__width // 2, self.__height // 2), goImg, 1, startImmediately=False)
+
+
+        show1 = JobWithTrigger(show1inner, DELAY_TRIGGER(duration/3), lambda: show1.finish(), startImmediately=False, triggerOnce=True)
+        show2 = JobWithTrigger(show2inner, DELAY_TRIGGER(duration/3), lambda: show1.start(), startImmediately=False, triggerOnce=True)
+        show3 = JobWithTrigger(show3inner, DELAY_TRIGGER(duration/3), lambda: show2.start(), startImmediately=True, triggerOnce=True)
+
+        show1.add_successor(showGo)
+        show1.add_dependent(show2)
+        show1.add_dependent(show3)
+
+        countDownManager.register_job(show3,  "splashes")
+        countDownManager.register_job(show2,  "splashes")
+        countDownManager.register_job(show1,  "splashes")
+        countDownManager.register_job(showGo, "splashes")
+
+
+        startTime = time.time()
+        while not countDownManager.all_animations_stopped() and self.__status.get_status() != Display.DisplayStatusValue.STOPPING:
+            self.__clock.tick(FPS)
+        
+            self.__screen.fill(self.__backgroundColor)
+            self.__update_layouts()
+            countDownManager.step_jobs()
+
+            # Allow players to quit but no other interaction
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    self.__status.update_status(Display.DisplayStatusValue.STOPPING)
+                    self.__msgQueue.put(("quitting",))
+                    return
+            pygame.display.flip()
+
+    def __run(self):
+        """
+        Runs the display loop that accepts player interaction
+        """
+        # Tells us which cards are selected
+        selected = False
+        selectedIdx = None
+
+        while self.__status.get_status() != Display.DisplayStatusValue.STOPPING:
+            self.__clock.tick(FPS)
+
+            # Draw BG
+            self.__screen.fill(self.__backgroundColor)
+
+            selectable = self.__update_layouts()
+
+            # Handle visualization of player selecting a card
+            highlights = []
+            for (_, rect) in self.__cardObjs["me"]:
+                highlights.append(self.__make_border(10, .5, rect, HIGHLIGHT_COLOR))
+            if selected:
+                (surf, rect) = highlights[selectedIdx]
+                self.__screen.blit(surf, rect)
+
+
+            self.__animationManager.step_jobs()
+
+            # Only want to flip when nothing is going on
+            if self.__animationManager.all_animations_stopped():
+                self.__msgQueue.put(("done-moving",))
+
+            # Event Loop
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    # Stops sender and sends out quitting msg to server
+                    self.__msgQueue.put(("quitting",))
+                    self.stop_display()
+
+                # Select card when mouse button is pressed
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    # Check if selecting one of our cards
+                    for i, (card, card_rect) in enumerate(self.__cardObjs["me"]):
+                        if card_rect.collidepoint(event.pos) and selectable[i]:  # Check if mouse is on one of our cards
+                            selected = True
+                            selectedIdx = i
+                            break
+
+                    if selected:
+                        # Check if we are trying to place a card
+                        for i, (card, card_rect) in enumerate(self.__cardObjs["mid"]):
+                            if card_rect.collidepoint(event.pos):  # Check if mouse is on one of our cards
+                                selected = False
+                                self.__msgQueue.put(('play', PlayCardAction(selectedIdx, i)))
+
+                                break
+                            
+            pygame.display.flip()
+
+    def final_state(self, result):
+        """
+        Used to display the final state of the game
+
+        Parameters
+        ----------
+        result: str
+            the result of the game {won, lost, draw}
+
+        Returns
+        -------
+        None
+        """
+        image = pygame.image.load(f"./images/{result}.png").convert_alpha()
+
+        # Make the image half translucent
+        image.set_alpha(128)
+
+        # Scale and center the image
+        image = pygame.transform.scale(image, (self.__width // 2, self.__height // 2))
+        rect  = image.get_rect(center = (self.__width // 2, self.__height // 2))
+
+        # Put the image on the screen
+        self.__screen.blit(image, rect)
+        pygame.display.flip()
+
+        # Wait for the user to quit
+        quit=False
+        while not quit:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    quit = True
+        pygame.quit()
+
+    #*********************************************************************#
+    #    Functions for the Display owner to update internal info safely   #
+    #*********************************************************************#
+
+    def set_initial(self):
+        """
+        Used to initialize the member layouts the first time
+        """
+        self.__update_layouts()
+
+    def set_names(self, names):
+        """
+        Updates the names of who is playing
+        """
+        self.__names = names
+
+    #*********************************************************************#
+    #          Internal updaters of what should be drawn and where        #
+    #*********************************************************************#
 
     def __update_layout(self, layout, who):
         """
@@ -175,30 +413,88 @@ class Display():
         None
         
         """
-        imgs = [self.cardLookup[str(c)] for c in layout]
-        self.cardObjs[who] = [(card, card.get_rect()) for card in imgs]
+        imgs = [self.__cardLookup[str(c)] for c in layout]
+        self.__cardObjs[who] = [(card, card.get_rect()) for card in imgs]
 
-        for i in range(len(self.cardObjs[who])):
-            (card, cardRect) = self.cardObjs[who][i]
-            cardRect.center = (self.xpos[who][i], self.vpos[who])
-            self.screen.blit(card, cardRect)
+        for i in range(len(self.__cardObjs[who])):
+            (card, cardRect) = self.__cardObjs[who][i]
+            cardRect.center = (self.__xpos[who][i], self.__vpos[who])
+            self.__screen.blit(card, cardRect)
     
     def __update_layouts(self):
         # Make and place the cards on the screen
-        myLayout, theirLayout, midPiles, selectable, myCardsLeft, theirCardsLeft = self.gameState.get_state()
+        myLayout, theirLayout, midPiles, selectable, myCardsLeft, theirCardsLeft = self.__gameState.get_state()
 
-        self.pile_xpos() # update sizes of each set of piles
+        self.__pile_xpos() # update sizes of each set of piles
 
         self.__update_layout(myLayout, "me")
         self.__update_layout(theirLayout, "them")
         self.__update_layout(midPiles, "mid")
 
         # Show cards left
-        self.__show_cards(myCardsLeft, self.height - FONT_SIZE)
+        self.__show_cards(myCardsLeft, self.__height - FONT_SIZE)
         self.__show_cards(theirCardsLeft, FONT_SIZE)
 
         return selectable
-    
+
+    def __pile_xpos(self):
+        """
+        Updates the horizontal positions of the cards based on the current
+        shape of the game
+        """
+        self.__nMyPiles, self.__nTheirPiles, self.__nMidPiles = self.__gameState.shape()
+        self.__xpos = {
+                   "them" : [i * (self.__width // (self.__nTheirPiles + 1)) for i in range(1, self.__nTheirPiles + 1)],
+                   "me"   : [i * (self.__width // (self.__nMyPiles + 1))    for i in range(1, self.__nMyPiles + 1)],
+                   "mid"  : [i * (self.__width // (self.__nMidPiles + 1))   for i in range(1, self.__nMidPiles + 1)],
+               }
+
+    def __show_cards(self, num, height):
+        """
+        Displays the count of cards left in a deck
+
+        Parameters
+        ----------
+        num: int
+            The number of cards remaining
+        height: int
+            The distance in pixels the center of the text will appear from the top of the screen
+        """
+        # Set up font
+
+        font = pygame.font.SysFont(None, FONT_SIZE)  # None = default font, 72 = size
+
+        # Get rect to center it
+        text_surface = font.render(f"Cards Remaining: {num}", True, (0, 0, 0))  # True = anti-aliasing
+        text_rect = text_surface.get_rect(center=(self.__width // 2, height))
+        self.__screen.blit(text_surface, text_rect)
+
+    def __make_border(self, rect_add, cntr_offset, rect, color, width = 5):
+        """
+        Creates a border
+
+        Parameters
+        ----------
+        rect_add : int
+            The amount around the rect to border
+        cntr_offset : int
+            The offset of the border center to the rect center
+        rect: pygame.Rect
+            The pygame rect around which to make a border
+        color : (int, int, int)
+            An RGB tuple for the color of the rectangle
+        width : int
+            The border width
+        """
+        surf = pygame.Surface((rect.w + rect_add, rect.h + rect_add), pygame.SRCALPHA)
+        hl_rect = pygame.draw.rect(surf, color, (0, 0, rect.width + rect_add, rect.height + rect_add), width = width)  # Transparent center
+        hl_rect.center = (rect.center[0] + cntr_offset, rect.center[1] + cntr_offset)
+        return surf, hl_rect
+
+    #*********************************************************************#
+    #                Functions to add special animations                 #
+    #*********************************************************************#
+
     def flip_cards(self, cards, pileIdxs, duration):
         """
         Queues animation jobs surrounding how flipping from the decks to the
@@ -218,32 +514,36 @@ class Display():
         -------
         None
         """
-        # TODO inline comments
-        middle = (self.width // 2, self.height // 2)
+        # Get the flip image, scale it to the max size we want it to show as
+        middle = (self.__width // 2, self.__height // 2)
         img = pygame.image.load("./images/flip.png")
         szW, szH = img.get_size()
         img = pygame.transform.scale(img, (szW * 2, szH * 2))
-        flipAnimation = Animations.FlipAnimation(self.screen, middle, img, 1)
-        self.animationManager.register_job(flipAnimation, "splashes")
 
+        # Create the flip animation and register it
+        flipAnimation = Animations.FlipAnimation(self.__screen, middle, img, 1)
+        self.__animationManager.register_job(flipAnimation, "splashes")
+
+        # Loop through the cards (and their locations) that are being flipped
         for (card, pileIdx) in zip(cards, pileIdxs):
-
-            oldImg, _ = self.cardObjs["mid"][pileIdx]
-            newImg = self.cardLookup[str(card)]
+            
+            # TODO Aiden what is happening here
+            oldImg, _ = self.__cardObjs["mid"][pileIdx]
+            newImg = self.__cardLookup[str(card)]
         
-            destYpos = self.vpos["mid"]
-            destXpos = self.xpos["mid"][pileIdx]
+            destYpos = self.__vpos["mid"]
+            destXpos = self.__xpos["mid"][pileIdx]
 
             # Comes in from left or right?
-            sideParity = -1 if pileIdx < self.nMidPiles / 2 else 1
-            srcYpos = self.vpos["mid"]
-            srcXpos = (self.width // 2) + sideParity * 0.5 * (self.width + newImg.get_width())
+            sideParity = -1 if pileIdx < self.__nMidPiles / 2 else 1
+            srcYpos = self.__vpos["mid"]
+            srcXpos = (self.__width // 2) + sideParity * 0.5 * (self.__width + newImg.get_width())
             
-            job = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, newImg)
-            holdJob = Animations.ShowImage(self.screen, oldImg, (destXpos, destYpos))
+            job = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.__screen, newImg)
+            holdJob = Animations.ShowImage(self.__screen, oldImg, (destXpos, destYpos))
             job.add_dependent(holdJob)
-            self.animationManager.register_job(job, "dynamic")
-            self.animationManager.register_job(holdJob, "static")
+            self.__animationManager.register_job(job, "dynamic")
+            self.__animationManager.register_job(holdJob, "static")
 
     def move_card(self, src, srcPile, dest, destPile, duration):
         """
@@ -268,297 +568,53 @@ class Display():
         
         """
         # Calc start and end pos
-        srcYpos = self.vpos[src]
-        srcXpos = self.xpos[src][srcPile]
+        srcYpos = self.__vpos[src]
+        srcXpos = self.__xpos[src][srcPile]
 
-        destYpos = self.vpos[dest]
-        destXpos = self.xpos[dest][destPile]
+        destYpos = self.__vpos[dest]
+        destXpos = self.__xpos[dest][destPile]
 
-        cardToMove, _ = self.cardObjs[src][srcPile]
-        cardToCover, _ = self.cardObjs[dest][destPile]
-        holdJob = Animations.ShowImage(self.screen, cardToCover, (destXpos, destYpos))
-        moveJob = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.screen, cardToMove)
+        cardToMove, _ = self.__cardObjs[src][srcPile]
+        cardToCover, _ = self.__cardObjs[dest][destPile]
+        holdJob = Animations.ShowImage(self.__screen, cardToCover, (destXpos, destYpos))
+        moveJob = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.__screen, cardToMove)
         moveJob.add_dependent(holdJob)
-        self.animationManager.register_job(moveJob, "dynamic")
-        self.animationManager.register_job(holdJob, "static", TopicOrder.BEFORE)
+        self.__animationManager.register_job(moveJob, "dynamic")
+        self.__animationManager.register_job(holdJob, "static", TopicOrder.BEFORE)
 
     def bad_move(self, pileIdx):
+        """
+        Shows a not_allowed indicator below the pile
+
+        Parameters
+        ----------
+        pileIdx: int
+            The index of the midPile below which the not_allowed image will be
+            drawn
+        """
         img = pygame.image.load("./images/not_allowed.png")
         img = pygame.transform.scale(img, (50,50))
 
         # Show image below the mid-pile we tried to play on
-        xpos = self.xpos["mid"][pileIdx]
-        ypos = self.vpos["mid"] + 100
-        showX = Animations.ShowImage(self.screen, img, (xpos,ypos), duration=0.5)
-        self.animationManager.register_job(showX, "static")
-
+        xpos = self.__xpos["mid"][pileIdx]
+        ypos = self.__vpos["mid"] + 100
+        showX = Animations.ShowImage(self.__screen, img, (xpos,ypos), duration=0.5)
+        self.__animationManager.register_job(showX, "static")
+    
+    #*********************************************************************#
+    #              Functions to transition the Display status             #
+    #*********************************************************************#
     def done_setup(self):
         """
         Set the display status to be running
         """
-        self.status = Display.DisplayStatus.RUNNING
-        self.msgQueue.put(('done-moving',))
-
-    def show_first_frame(self):
-        """
-        Set up the initial frame (all blank cards) and allow the player to quit
-        """
-        #TODO Aiden doc this
-        waitingOverlay = Animations.OverlayAndText(self.screen, (128,128,128,200), "Waiting for Opponent...", (self.width // 2, 270))
-        waitingManager = JobManager() 
-        waitingManager.create_topic("splashes", 0)
-        waitingManager.register_job(waitingOverlay, "splashes")
+        self.__status.update_status(Display.DisplayStatusValue.RUNNING)
+        self.__msgQueue.put(('done-moving',))
     
-        # Display the first frame 
-        while self.status == Display.DisplayStatus.SETUP:
-            self.clock.tick(FPS)
-            self.screen.fill(self.backgroundColor)
-
-            waitingManager.step_jobs()
-
-            # Allow player to quit but no other interaction
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    self.status = Display.DisplayStatus.STOPPING
-                    self.msgQueue.put(("quitting",))
-                    return
-            pygame.display.flip()
-        
-        print("Done showing initial frame")
-
-    def do_countdown(self, duration = 3):
-        # 3s Countdown by default
-
-        # Custom manager so we dont muck with animation manager for this class
-        countDownManager = JobManager()
-        countDownManager.create_topic("splashes")
-
-        goImg = pygame.image.load("./images/go.png")
-        goImg = pygame.transform.scale(goImg, (600,450))
-
-
-        # Each "showX" job displays a digit and queues the next digit to display after a third of the countdown has passed
-        show3inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "3", (self.width // 2 - 100, 260), textColor=(255,0,0))
-        show2inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "2", (self.width // 2      , 260), textColor=(255,0,0))
-        show1inner = Animations.OverlayAndText(self.screen, (0,0,0,0), "1", (self.width // 2 + 100, 260), textColor=(255,0,0))
-        showGo     = Animations.FlipAnimation(self.screen, (self.width // 2, self.height // 2), goImg, 1, startImmediately=False)
-
-
-        show1 = JobWithTrigger(show1inner, DELAY_TRIGGER(duration/3), lambda: show1.finish(), startImmediately=False, triggerOnce=True)
-        show2 = JobWithTrigger(show2inner, DELAY_TRIGGER(duration/3), lambda: show1.start(), startImmediately=False, triggerOnce=True)
-        show3 = JobWithTrigger(show3inner, DELAY_TRIGGER(duration/3), lambda: show2.start(), startImmediately=True, triggerOnce=True)
-
-        show1.add_successor(showGo)
-        show1.add_dependent(show2)
-        show1.add_dependent(show3)
-
-        countDownManager.register_job(show3,  "splashes")
-        countDownManager.register_job(show2,  "splashes")
-        countDownManager.register_job(show1,  "splashes")
-        countDownManager.register_job(showGo, "splashes")
-
-
-        startTime = time.time()
-        while not countDownManager.all_animations_stopped() and self.status != Display.DisplayStatus.STOPPING:
-            self.clock.tick(FPS)
-        
-            self.screen.fill(self.backgroundColor)
-            self.__update_layouts()
-            countDownManager.step_jobs()
-
-            # Allow players to quit but no other interaction
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    self.status = Display.DisplayStatus.STOPPING
-                    self.msgQueue.put(("quitting",))
-                    return
-            pygame.display.flip()
-
     def stop_display(self):
         """
-        # TODO AIDEN
+        Updates the dispaly status to stopping, effectively starting the 
+        shutdown process for the running display
         """
-        self.status = Display.DisplayStatus.STOPPING
-
-    def run(self):
-        """
-        Runs the display loop that accepts player interaction
-        """
-
-        self.show_first_frame()
-
-        if self.status != Display.DisplayStatus.STOPPING:
-            caption = "Playing Spit! with "
-            for i, name in enumerate(self.names):
-                caption += name
-                if i < len(self.names) - 1:
-                    caption += ", "
-        
-            pygame.display.set_caption(caption)
-            self.do_countdown()
-
-
-        # ==========================================================
-        # All initialization screen stuff should show up before here
-        # ==========================================================
-        
-        # Tells us which cards are selected
-        selected = False
-        selectedIdx = None
-
-        while self.status != Display.DisplayStatus.STOPPING:
-            self.clock.tick(FPS)
-
-            # Draw BG
-            self.screen.fill(self.backgroundColor)
-
-            selectable = self.__update_layouts()
-
-            # Handle visualization of player selecting a card
-            highlights = []
-            for (_, rect) in self.cardObjs["me"]:
-                highlights.append(self.make_border(10, .5, rect, HIGHLIGHT_COLOR))
-            if selected:
-                (surf, rect) = highlights[selectedIdx]
-                self.screen.blit(surf, rect)
-            elif selectedIdx is not None:
-                self.remove_border_from(self.screen, highlights, selectedIdx)
-                selectedIdx = None
-
-            self.animationManager.step_jobs()
-
-            # Only want to flip when nothing is going on
-            if self.animationManager.all_animations_stopped():
-                self.msgQueue.put(("done-moving",))
-
-            # Event Loop
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    # Stops sender and sends out quitting msg to server
-                    self.msgQueue.put(("quitting",))
-                    # TODO maybe call stop game
-                    self.status = Display.DisplayStatus.STOPPING
-
-                # Select card when mouse button is pressed
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    print(f"Selected is {selected}")
-                    
-                    # Check if selecting one of our cards
-                    for i, (card, card_rect) in enumerate(self.cardObjs["me"]):
-                        if card_rect.collidepoint(event.pos) and selectable[i]:  # Check if mouse is on one of our cards
-                            if selected:
-                                # Turn off highlight
-                                self.remove_border_from(self.screen, highlights, selectedIdx)
-                                selectedIdx = None
-                            
-                            selected = True
-
-                            selectedIdx = i
-                            print(f"Selected {card}")
-                            break
-
-                    if selected:
-                        # Check if we are trying to place a card
-                        print(f"Else Case")
-                        for i, (card, card_rect) in enumerate(self.cardObjs["mid"]):
-                            print(card_rect, event.pos)
-                            if card_rect.collidepoint(event.pos):  # Check if mouse is on one of our cards
-                                selected = False
-                                self.msgQueue.put(('play', PlayCardAction(selectedIdx, i)))
-
-                                break
-                            
-            pygame.display.flip()
-
-    def __show_cards(self, num, height):
-        """
-        Displays the count of cards left in a deck
-
-        Parameters
-        ----------
-        num: int
-            The number of cards remaining
-        height: int
-            The distance in pixels the center of the text will appear from the top of the screen
-        """
-        # Set up font
-
-        font = pygame.font.SysFont(None, FONT_SIZE)  # None = default font, 72 = size
-
-        # Get rect to center it
-        text_surface = font.render(f"Cards Remaining: {num}", True, (0, 0, 0))  # True = anti-aliasing
-        text_rect = text_surface.get_rect(center=(self.width // 2, height))
-        self.screen.blit(text_surface, text_rect)
-
-    def make_border(self, rect_add, cntr_offset, rect, color, width = 5):
-        """
-        Creates a border
-
-        Parameters
-        ----------
-        rect_add : int
-            The amount around the rect to border
-        cntr_offset : int
-            The offset of the border center to the rect center
-        rect: pygame.Rect
-            The pygame rect around which to make a border
-        color : (int, int, int)
-            An RGB tuple for the color of the rectangle
-        width : int
-            The border width
-        """
-        surf = pygame.Surface((rect.w + rect_add, rect.h + rect_add), pygame.SRCALPHA)
-        hl_rect = pygame.draw.rect(surf, color, (0, 0, rect.width + rect_add, rect.height + rect_add), width = width)  # Transparent center
-        hl_rect.center = (rect.center[0] + cntr_offset, rect.center[1] + cntr_offset)
-        return surf, hl_rect
-
-    def remove_border(self, highlights, border_idx):
-        """
-        # TODO assess if we actually need this
-        """
-        (_, rect) = highlights[border_idx]
-        surf, rect = self.make_border(0, 0, rect, self.backgroundColor)
-        return surf, rect
-
-    def remove_border_from(self, screen, highlights, border_idx):
-        """
-        # TODO also asses if we need this 
-        """
-        surf, rect = self.remove_border(highlights, border_idx)
-        screen.blit(surf, rect)
-
-    def final_state(self, result):
-        """
-        Used to display the final state of the game
-
-        Parameters
-        ----------
-        result: str
-            the result of the game {won, lost, draw}
-
-        Returns
-        -------
-        None
-        """
-        image = pygame.image.load(f"./images/{result}.png").convert_alpha()
-
-        # Make the image half translucent
-        image.set_alpha(128)
-
-        # Scale and center the image
-        image = pygame.transform.scale(image, (self.width // 2, self.height // 2))
-        rect  = image.get_rect(center = (self.width // 2, self.height // 2))
-
-        # Put the image on the screen
-        self.screen.blit(image, rect)
-        pygame.display.flip()
-
-        # Wait for the user to quit
-        quit=False
-        while not quit:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    quit = True
-        pygame.quit()
+        self.__status.update_status(Display.DisplayStatusValue.STOPPING)
+    
