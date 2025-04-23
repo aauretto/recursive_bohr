@@ -235,7 +235,6 @@ class Display():
                     return
             pygame.display.flip()
         
-
     def __do_countdown(self, duration = 3):
         # 3s Countdown by default
 
@@ -294,25 +293,15 @@ class Display():
         selectedIdx = None
 
         while self.__status.get_status() != Display.DisplayStatusValue.STOPPING:
+            # Handle intializing the frame
             self.__clock.tick(FPS)
-
-            # Draw BG
-            self.__screen.fill(self.__backgroundColor)
-
-            selectable = self.__update_layouts()
+            self.__screen.fill(self.__backgroundColor) # Draw background
 
             # Handle visualization of player selecting a card
-            highlights = []
-            for (_, rect) in self.__cardObjs["me"]:
-                highlights.append(self.__make_border(10, .5, rect, HIGHLIGHT_COLOR))
-            if selected:
-                (surf, rect) = highlights[selectedIdx]
-                self.__screen.blit(surf, rect)
-
+            selectable = self.__update_layouts()
+            self.__do_highlight(selected, selectedIdx)
 
             self.__animationManager.step_jobs()
-
-            # Only want to flip when nothing is going on
             if self.__animationManager.all_animations_stopped():
                 self.__msgQueue.put(("done-moving",))
 
@@ -326,7 +315,7 @@ class Display():
                 # Select card when mouse button is pressed
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     # Check if selecting one of our cards
-                    for i, (card, card_rect) in enumerate(self.__cardObjs["me"]):
+                    for i, (_, card_rect) in enumerate(self.__cardObjs["me"]):
                         if card_rect.collidepoint(event.pos) and selectable[i]:  # Check if mouse is on one of our cards
                             selected = True
                             selectedIdx = i
@@ -468,6 +457,24 @@ class Display():
         text_surface = font.render(f"Cards Remaining: {num}", True, (0, 0, 0))  # True = anti-aliasing
         text_rect = text_surface.get_rect(center=(self.__width // 2, height))
         self.__screen.blit(text_surface, text_rect)
+
+    def __do_highlight(self, selected, selectedIdx):
+        """
+        Show the highlighting of the selected card
+
+        Parameters
+        ----------
+        selected: bool
+            Whether a card should be selected or not
+        selectedIdx: int
+            The index of the selected card in out layout
+        """
+        highlights = []
+        for (_, rect) in self.__cardObjs["me"]:
+            highlights.append(self.__make_border(10, .5, rect, HIGHLIGHT_COLOR))
+        if selected:
+            (surf, rect) = highlights[selectedIdx]
+            self.__screen.blit(surf, rect)
 
     def __make_border(self, rect_add, cntr_offset, rect, color, width = 5):
         """
