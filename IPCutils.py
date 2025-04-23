@@ -205,7 +205,6 @@ class BaseServer:
         """
         if msg == STOP_SERVER_MSG: #TODO Aiden how does this actully work, STOP_SERVER_MSG doesn't appean to exist??
             self.stop()
-            print("Set stop flag")
             return
         self.broadcast_message(msg)
 

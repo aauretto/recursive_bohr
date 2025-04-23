@@ -170,7 +170,6 @@ class Client(BaseClient):
         """
         self.__listener = threading.Thread(target = self.__listener_worker, args = (serverAddr, port))
         self.__listener.start()
-        print("[DEBUG] > Created and started listener")
 
     #*********************************************************************#
     #      Functions for handling incomming messages from the server      #
@@ -221,13 +220,12 @@ class Client(BaseClient):
                     self.__msgQueue.put(("player-name", self.__name))
 
                 case ("all-names", players):
-                    print(f"Everyone has joined. Players in lobby: {players}")
                     self.__display.set_names(players)
                     self.__status.update_status(Client.ClientStatusValue.READYING)
                     # Should go through msgQueue
                     self.__msgQueue.put(("ready",))
                 case _:
-                    print(f"Received message {msg} in SETUP phase")
+                    print(f"Received bad message {msg} in SETUP phase")
 
         elif self.__status.get_status() == Client.ClientStatusValue.READYING:
             match msg:
@@ -238,7 +236,7 @@ class Client(BaseClient):
                     self.__display.done_setup()
 
                 case _:
-                    print(f"Received message {msg} in READYING phase")
+                    print(f"Received bad message {msg} in READYING phase")
 
         elif self.__status.get_status() == Client.ClientStatusValue.PLAYING:
             match msg:

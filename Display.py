@@ -235,7 +235,6 @@ class Display():
                     return
             pygame.display.flip()
         
-        print("Done showing initial frame")
 
     def __do_countdown(self, duration = 3):
         # 3s Countdown by default
@@ -326,21 +325,16 @@ class Display():
 
                 # Select card when mouse button is pressed
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    print(f"Selected is {selected}")
-                    
                     # Check if selecting one of our cards
                     for i, (card, card_rect) in enumerate(self.__cardObjs["me"]):
                         if card_rect.collidepoint(event.pos) and selectable[i]:  # Check if mouse is on one of our cards
                             selected = True
                             selectedIdx = i
-                            print(f"Selected {card}")
                             break
 
                     if selected:
                         # Check if we are trying to place a card
-                        print(f"Else Case")
                         for i, (card, card_rect) in enumerate(self.__cardObjs["mid"]):
-                            print(card_rect, event.pos)
                             if card_rect.collidepoint(event.pos):  # Check if mouse is on one of our cards
                                 selected = False
                                 self.__msgQueue.put(('play', PlayCardAction(selectedIdx, i)))

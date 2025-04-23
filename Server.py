@@ -82,7 +82,6 @@ class Server(BaseServer):
         Runs the game
         """
         ### TODO SOCKET TIMEOUT THINS
-        print(f"Loop start status = {self.__serverStatus}")
         while self.__serverStatus == Server.ServerStatus.RUNNING:
             self.rx_message()
 
@@ -145,12 +144,11 @@ class Server(BaseServer):
                     case ("ready",):
                         self.__currentPlayers[client]['status'] = Server.ClientStatus.READY
                         if self.__all_ready():
-                            print("Setting status to running")
                             self.__serverStatus = Server.ServerStatus.RUNNING
                     case ("quitting",):
                         self.__stop_game("player-left", self.__currentPlayers[client]['uname'])
                     case _:
-                        print(f"Received message {msg} in SETUP phase")
+                        print(f"Received bad message {msg} in SETUP phase")
         
             elif self.__serverStatus == Server.ServerStatus.RUNNING:
                 # Handle these messages while the game is running
