@@ -22,8 +22,8 @@ class Client(BaseClient):
             """
             Constructor for ClientStatus, a monitored status indicator.
             """
-            self.status = Client.ClientStatusValue.SETUP
-            self.lock = Lock()
+            self.__status = Client.ClientStatusValue.SETUP
+            self.__lock = Lock()
 
         def update_status(self, value):
             """
@@ -38,9 +38,9 @@ class Client(BaseClient):
             -------
             None
             """
-            with self.lock:
-                if self.status != Client.ClientStatusValue.STOPPING:
-                    self.status = value
+            with self.__lock:
+                if self.__status != Client.ClientStatusValue.STOPPING:
+                    self.__status = value
 
         def get_status(self):
             """
@@ -50,8 +50,8 @@ class Client(BaseClient):
             -------
             : Client.ClientStatusValue
             """
-            with self.lock:
-                return self.status
+            with self.__lock:
+                return self.__status
             
 
 
@@ -84,13 +84,13 @@ class Client(BaseClient):
         self.sock.settimeout(timeout)
         
         ### Initialize members
-        self.state = ClientState(None)
-        self.name = name
-        self.msgQueue = Queue()
-        self.gameResult = None
-        self.status = Client.ClientStatus()
+        self.__state = ClientState(None)
+        self.__name = name
+        self.__msgQueue = Queue()
+        self.__gameResult = None
+        self.__status = Client.ClientStatus()
 
-        self.display = Display(self.state, self.msgQueue)
+        self.__display = Display(self.__state, self.__msgQueue)
 
         self.__spawn_listener(serverAddr, port)
         self.__spawn_sender()
@@ -102,34 +102,34 @@ class Client(BaseClient):
         Runs the game
         """
         # Main Thread Handles Display
-        self.display.run()
-        self.status.update_status(Client.ClientStatusValue.STOPPING)
+        self.__display.run()
+        self.__status.update_status(Client.ClientStatusValue.STOPPING)
         
         # Wait for the sender and listener to finish
-        self.sender.join()
-        self.listener.join()
+        self.__sender.join()
+        self.__listener.join()
         
-        if self.gameResult: # If we arent killed by user, show result
-            self.display.final_state(self.gameResult)
+        if self.__gameResult: # If we arent killed by user, show result
+            self.__display.final_state(self.__gameResult)
 
     def __send_worker(self):
         """
         Worker that sends game action messages to the server.
         """
-        while self.status.get_status() != Client.ClientStatusValue.STOPPING:
-            msg = self.msgQueue.get(block=True)
+        while self.__status.get_status() != Client.ClientStatusValue.STOPPING:
+            msg = self.__msgQueue.get(block=True)
             # Falsey values used as sentinels
             if msg:
                 if not self.tx_message(msg) or msg == ("quitting",):
-                    self.status.update_status(Client.ClientStatusValue.STOPPING)
+                    self.__status.update_status(Client.ClientStatusValue.STOPPING)
 
 
     def __spawn_sender(self):
         """
         Spools up a sender thread
         """
-        self.sender = threading.Thread(target=self.__send_worker)
-        self.sender.start()
+        self.__sender = threading.Thread(target=self.__send_worker)
+        self.__sender.start()
 
     def __listener_worker(self, serverAddr, port):
         """
@@ -139,27 +139,27 @@ class Client(BaseClient):
         ### Set up socket:
         # make connection and get start state
         if not self.connect_to(serverAddr, port):
-            self.status.update_status(Client.ClientStatusValue.STOPPING)
+            self.__status.update_status(Client.ClientStatusValue.STOPPING)
 
         # Remove timeout for future communications
         self.sock.settimeout(None)
         
-        if self.status.get_status() == Client.ClientStatusValue.STOPPING:
+        if self.__status.get_status() == Client.ClientStatusValue.STOPPING:
             # Kill display here and main thread will terminate
-            self.display.stop_display()
-            self.msgQueue.put(None) 
+            self.__display.stop_display()
+            self.__msgQueue.put(None) 
             raise UnableToConnectError(serverAddr, port) #TODO consider that this does not actually error ???
 
         # Receive messages until the we are done
-        while self.status.get_status() != Client.ClientStatusValue.STOPPING:
+        while self.__status.get_status() != Client.ClientStatusValue.STOPPING:
             self.rx_message()
 
     def __spawn_listener(self, serverAddr, port):
         """
         Spawns and starts the listener thread
         """
-        self.listener = threading.Thread(target = self.__listener_worker, args = (serverAddr, port))
-        self.listener.start()
+        self.__listener = threading.Thread(target = self.__listener_worker, args = (serverAddr, port))
+        self.__listener.start()
         print("[DEBUG] > Created and started listener")
 
 
@@ -198,60 +198,60 @@ class Client(BaseClient):
         -------
         None
         """  
-        if self.status.get_status() == Client.ClientStatusValue.SETUP:
+        if self.__status.get_status() == Client.ClientStatusValue.SETUP:
             match msg:
                 case ("ip-info", ip):
                     print(f"[Server] > Connected to {ip}")
                     print(f"[Server] > Waiting for opponent to join...")
 
                 case ("name-request",):
-                    self.msgQueue.put(("player-name", self.name))
+                    self.__msgQueue.put(("player-name", self.__name))
 
                 case ("all-names", players):
                     print(f"Everyone has joined. Players in lobby: {players}")
-                    self.display.set_names(players)
-                    self.status.update_status(Client.ClientStatusValue.READYING)
+                    self.__display.set_names(players)
+                    self.__status.update_status(Client.ClientStatusValue.READYING)
                     # Should go through msgQueue
-                    self.msgQueue.put(("ready",))
+                    self.__msgQueue.put(("ready",))
                 case _:
                     print(f"Received message {msg} in SETUP phase")
 
-        elif self.status.get_status() == Client.ClientStatusValue.READYING:
+        elif self.__status.get_status() == Client.ClientStatusValue.READYING:
             match msg:
                 case ("state", "initial", csp): 
-                    self.state.update_state(csp)
-                    self.display.set_initial()
-                    self.status.update_status(Client.ClientStatusValue.PLAYING)
-                    self.display.done_setup()
+                    self.__state.update_state(csp)
+                    self.__display.set_initial()
+                    self.__status.update_status(Client.ClientStatusValue.PLAYING)
+                    self.__display.done_setup()
 
                 case _:
                     print(f"Received message {msg} in READYING phase")
 
-        elif self.status.get_status() == Client.ClientStatusValue.PLAYING:
+        elif self.__status.get_status() == Client.ClientStatusValue.PLAYING:
             match msg:
                 case ("game-stopped", "draw", _):
-                    self.gameResult = "draw"
+                    self.__gameResult = "draw"
                     self.stop_game()
 
                 case ("game-stopped", "won", _):
-                    self.gameResult = "won"
+                    self.__gameResult = "won"
                     self.stop_game()
 
                 case ("game-stopped", "lost", winner):
-                    self.gameResult = "lost"
+                    self.__gameResult = "lost"
                     self.stop_game()
 
                 case ("state", "new", csp): 
-                    self.state.update_state(csp)
+                    self.__state.update_state(csp)
 
                 case ("move", srcLayout, srcIdx, destLayout, destIdx): 
-                    self.display.move_card(srcLayout, srcIdx, destLayout, destIdx, 0.5)
+                    self.__display.move_card(srcLayout, srcIdx, destLayout, destIdx, 0.5)
 
                 case ("flip", cards, pileIdxs): 
-                    self.display.flip_cards(cards, pileIdxs, 1)
+                    self.__display.flip_cards(cards, pileIdxs, 1)
                 
                 case ("bad-move", _, pileIdx):
-                    self.display.bad_move(pileIdx)
+                    self.__display.bad_move(pileIdx)
 
 
                 case _:
@@ -263,9 +263,9 @@ class Client(BaseClient):
         """
         Set client status to stopping and gracefully stop the display
         """
-        self.status.update_status(Client.ClientStatusValue.STOPPING)
-        self.display.stop_display() 
-        self.msgQueue.put(None) 
+        self.__status.update_status(Client.ClientStatusValue.STOPPING)
+        self.__display.stop_display() 
+        self.__msgQueue.put(None) 
 
 if __name__ == "__main__":
     ip = input("Enter the IP to connect to: ")   

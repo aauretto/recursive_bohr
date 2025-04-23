@@ -216,7 +216,7 @@ class Server(BaseServer):
         if not self.__any_animating() and not self.state.moves_available():
             
             playersFlipped = self.state.flip()
-            cardsToFlip = [c for (i, c) in enumerate(self.state.game_piles) if i in playersFlipped]
+            cardsToFlip = [c for (i, c) in enumerate(self.state.get_game_piles()) if i in playersFlipped]
 
             self.broadcast_message(("flip", cardsToFlip, playersFlipped))
             self.broadcast_gamestate("new")
