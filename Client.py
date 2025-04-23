@@ -5,16 +5,57 @@ import threading
 from Display import Display
 from queue import Queue
 from enum import Enum
+from threading import Lock
 
 
 
 class Client(BaseClient):
 
-    class ClientStatus(Enum):
+    class ClientStatusValue(Enum):
         SETUP    = 0
         READYING = 1
         PLAYING  = 2
         STOPPING = 3
+
+    class ClientStatus():
+        def __init__(self):
+            """
+            Constructor for ClientStatus, a monitored status indicator.
+            """
+            self.status = Client.ClientStatusValue.SETUP
+            self.lock = Lock()
+
+        def update_status(self, value):
+            """
+            Update status if not already STOPPING 
+
+            Parameters
+            ----------
+            value: Client.ClientStatusValue
+                New status
+            
+            Returns
+            -------
+            None
+            """
+            with self.lock:
+                if self.status != Client.ClientStatusValue.STOPPING:
+                    self.status = value
+
+        def get_status(self):
+            """
+            Get current status 
+
+            Returns
+            -------
+            : Client.ClientStatusValue
+            """
+            with self.lock:
+                return self.status
+            
+
+
+
 
     def __init__(self, serverAddr, port, name, timeout=5):
         """
@@ -47,7 +88,7 @@ class Client(BaseClient):
         self.name = name
         self.msgQueue = Queue()
         self.gameResult = None
-        self.status = Client.ClientStatus.SETUP
+        self.status = Client.ClientStatus()
 
         self.display = Display(self.state, self.msgQueue)
 
@@ -62,7 +103,7 @@ class Client(BaseClient):
         """
         # Main Thread Handles Display
         self.display.run()
-        self.status = Client.ClientStatus.STOPPING
+        self.status.update_status(Client.ClientStatusValue.STOPPING)
         
         # Wait for the sender and listener to finish
         self.sender.join()
@@ -75,12 +116,12 @@ class Client(BaseClient):
         """
         Worker that sends game action messages to the server.
         """
-        while self.status != Client.ClientStatus.STOPPING:
+        while self.status.get_status() != Client.ClientStatusValue.STOPPING:
             msg = self.msgQueue.get(block=True)
             # Falsey values used as sentinels
             if msg:
                 if not self.tx_message(msg) or msg == ("quitting",):
-                    self.status = Client.ClientStatus.STOPPING
+                    self.status.update_status(Client.ClientStatusValue.STOPPING)
 
 
     def __spawn_sender(self):
@@ -98,18 +139,18 @@ class Client(BaseClient):
         ### Set up socket:
         # make connection and get start state
         if not self.connect_to(serverAddr, port):
-            self.status = Client.ClientStatus.STOPPING
+            self.status.update_status(Client.ClientStatusValue.STOPPING)
 
         # Remove timeout for future communications
         self.sock.settimeout(None)
         
-        if self.status == Client.ClientStatus.STOPPING:
+        if self.status.get_status() == Client.ClientStatusValue.STOPPING:
             # Kill display here and main thread will terminate
             self.display.stop_display()
             raise UnableToConnectError(serverAddr, port) #TODO consider that this does not actually error ???
 
         # Receive messages until the we are done
-        while self.status != Client.ClientStatus.STOPPING:
+        while self.status.get_status() != Client.ClientStatusValue.STOPPING:
             self.rx_message()
 
     def __spawn_listener(self, serverAddr, port):
@@ -156,7 +197,7 @@ class Client(BaseClient):
         -------
         None
         """  
-        if self.status == Client.ClientStatus.SETUP:
+        if self.status.get_status() == Client.ClientStatusValue.SETUP:
             match msg:
                 case ("ip-info", ip):
                     print(f"[Server] > Connected to {ip}")
@@ -168,24 +209,24 @@ class Client(BaseClient):
                 case ("all-names", players):
                     print(f"Everyone has joined. Players in lobby: {players}")
                     self.display.set_names(players)
-                    self.status = Client.ClientStatus.READYING
+                    self.status.update_status(Client.ClientStatusValue.READYING)
                     # Should go through msgQueue
                     self.msgQueue.put(("ready",))
                 case _:
                     print(f"Received message {msg} in SETUP phase")
 
-        elif self.status == Client.ClientStatus.READYING:
+        elif self.status.get_status() == Client.ClientStatusValue.READYING:
             match msg:
                 case ("state", "initial", csp): 
                     self.state.update_state(csp)
                     self.display.set_initial()
-                    self.status = Client.ClientStatus.PLAYING
+                    self.status.update_status(Client.ClientStatusValue.PLAYING)
                     self.display.done_setup()
 
                 case _:
                     print(f"Received message {msg} in READYING phase")
 
-        elif self.status == Client.ClientStatus.PLAYING:
+        elif self.status.get_status() == Client.ClientStatusValue.PLAYING:
             match msg:
                 case ("game-stopped", "draw", _):
                     self.gameResult = "draw"
@@ -221,7 +262,7 @@ class Client(BaseClient):
         """
         Set client status to stopping and gracefully stop the display
         """
-        self.status = Client.ClientStatus.STOPPING
+        self.status.update_status(Client.ClientStatusValue.STOPPING)
         self.display.stop_display() 
 
 if __name__ == "__main__":
