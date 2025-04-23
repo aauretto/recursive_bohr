@@ -52,7 +52,11 @@ class Client(BaseClient):
             """
             with self.__lock:
                 return self.__status
-            
+
+    #*********************************************************************#
+    #          Constructor and Driver function for the Client             #
+    #*********************************************************************#
+    
     def __init__(self, serverAddr, port, name, timeout=5):
         """
          Constructor for the Client class
@@ -108,6 +112,10 @@ class Client(BaseClient):
         if self.__gameResult: # If we arent killed by user, show result
             self.__display.final_state(self.__gameResult)
 
+    #*********************************************************************#
+    #       Internal functions for the sender and listener threads        #
+    #*********************************************************************#
+
     def __send_worker(self):
         """
         Worker that sends game action messages to the server.
@@ -118,7 +126,6 @@ class Client(BaseClient):
             if msg:
                 if not self.tx_message(msg) or msg == ("quitting",):
                     self.__status.update_status(Client.ClientStatusValue.STOPPING)
-
 
     def __spawn_sender(self):
         """
@@ -158,6 +165,9 @@ class Client(BaseClient):
         self.__listener.start()
         print("[DEBUG] > Created and started listener")
 
+    #*********************************************************************#
+    #      Functions for handling incomming messages from the server      #
+    #*********************************************************************#
 
     def handle_message(self, msg):
         """
@@ -255,6 +265,9 @@ class Client(BaseClient):
         else:
             print(f"Print in bad Client state while receiving {msg}")
 
+    #*********************************************************************#
+    #         Function for gracefully ending the game and closing         #
+    #*********************************************************************#
     def __stop_game(self):
         """
         Set client status to stopping and gracefully stop the display

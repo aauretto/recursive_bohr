@@ -21,7 +21,10 @@ class Server(BaseServer):
         SETUP   = 0
         RUNNING = 1
         STOPPING = 2
-
+    
+    #*********************************************************************#
+    #           Constructor and Driver functions for the Server           #
+    #*********************************************************************#
     def __init__(self, host, port, numPlayers=2, numGamePiles=2, layoutSize=4):
         """
         Constructor for the Server class
@@ -55,10 +58,6 @@ class Server(BaseServer):
         self.__state = ServerGameState(numPlayers=numPlayers, 
                                      numGamePiles=numGamePiles, 
                                      layoutSize=layoutSize)
-    
-    #*********************************************************************#
-    #                   Driver functions for the Server                   #
-    #*********************************************************************#
 
     def start(self):
         """
@@ -122,6 +121,7 @@ class Server(BaseServer):
     #*********************************************************************#
     #       Functions and helpers for sending and recieving messages      #
     #*********************************************************************#
+
     def handle_message(self, client, msg):
             """
             Handles what the server should do upon recieving a given message
