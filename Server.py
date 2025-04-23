@@ -306,7 +306,7 @@ class Server(BaseServer):
                 self.broadcast_message(('game-stopped', reason, data))  
 
     #*********************************************************************#
-    #                Internal Functions for status checking               #
+    #              Internal Functions for condition checking              #
     #*********************************************************************#
 
     def __enough_joined(self):
