@@ -3,8 +3,9 @@ import threading
 from enum import Enum
 from abc import ABC, abstractmethod
 
+
 #==============================================================================#
-#                    Abstract base class for jobs                    #
+#                         Abstract base class for jobs                         #
 #==============================================================================#
 class BaseJob(ABC):
     def __init__(self, startImmediately=True):
@@ -92,6 +93,9 @@ class BaseJob(ABC):
         for job in self.__successors:
             job.start()
 
+#==============================================================================#
+#                               JobWithTrigger                                 #
+#==============================================================================#
 class JobWithTrigger(BaseJob):
     """
     Bundles together a job and some predicate. Will call action() when predicate
@@ -138,6 +142,9 @@ class JobWithTrigger(BaseJob):
             self.__action()
             self.__triggered = True
 
+#******************************#
+#      Available Triggers      #
+#******************************#
 def DELAY_TRIGGER(delay): #TODO why caps
     """
     Creates a predicate that when evaluated returns whether delay seconds 
@@ -162,6 +169,9 @@ def DELAY_TRIGGER(delay): #TODO why caps
         return (time.time() - startTime) > delay
     return trigger
 
+#==============================================================================#
+#                             Topic Functionality                              #
+#==============================================================================#
 class TopicOrder(Enum):
     """
     Enum defining whether to add to the front or back of a topic's list of jobs.
@@ -238,7 +248,10 @@ class Topic():
         None
         """
         self.__jobs = list(filter(lambda j : not j.is_finished(), self.__jobs))
-            
+
+#==============================================================================#
+#                               The Job Manager                                #
+#==============================================================================#
 class JobManager():
     """
     Container for multiple topics of jobs. Allows for interleaving of BaseJob

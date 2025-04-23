@@ -157,7 +157,7 @@ class Client(BaseClient):
             # Kill display here and main thread will terminate
             self.__display.stop_display()
             self.__msgQueue.put(None) 
-            raise UnableToConnectError(serverAddr, port) #TODO consider that this does not actually error ???
+            raise UnableToConnectError(serverAddr, port)
 
         # Receive messages until the we are done
         while self.__status.get_status() != Client.ClientStatusValue.STOPPING:
