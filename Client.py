@@ -81,7 +81,7 @@ class Client(BaseClient):
         super().__init__()
         
         # Set timeout for connecting to the server
-        self.sock.settimeout(timeout)
+        self._sock.settimeout(timeout)
         
         ### Initialize members
         self.__state = ClientState(None)
@@ -142,7 +142,7 @@ class Client(BaseClient):
             self.__status.update_status(Client.ClientStatusValue.STOPPING)
 
         # Remove timeout for future communications
-        self.sock.settimeout(None)
+        self._sock.settimeout(None)
         
         if self.__status.get_status() == Client.ClientStatusValue.STOPPING:
             # Kill display here and main thread will terminate
