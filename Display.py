@@ -250,7 +250,7 @@ class Display():
         show3inner = Animations.OverlayAndText(self.__screen, (0,0,0,0), "3", (self.__width // 2 - 100, 260), textColor=(255,0,0))
         show2inner = Animations.OverlayAndText(self.__screen, (0,0,0,0), "2", (self.__width // 2      , 260), textColor=(255,0,0))
         show1inner = Animations.OverlayAndText(self.__screen, (0,0,0,0), "1", (self.__width // 2 + 100, 260), textColor=(255,0,0))
-        showGo     = Animations.FlipAnimation(self.__screen, (self.__width // 2, self.__height // 2), goImg, 1, startImmediately=False)
+        showGo     = Animations.GrowAndFadeAnimation(self.__screen, (self.__width // 2, self.__height // 2), goImg, 1, startImmediately=False)
 
 
         show1 = JobWithTrigger(show1inner, DELAY_TRIGGER(duration/3), lambda: show1.finish(), startImmediately=False, triggerOnce=True)
@@ -528,7 +528,7 @@ class Display():
         img = pygame.transform.scale(img, (szW * 2, szH * 2))
 
         # Create the flip animation and register it
-        flipAnimation = Animations.FlipAnimation(self.__screen, middle, img, 1)
+        flipAnimation = Animations.GrowAndFadeAnimation(self.__screen, middle, img, 1)
         self.__animationManager.register_job(flipAnimation, "splashes")
 
         # Loop through the cards (and their locations) that are being flipped

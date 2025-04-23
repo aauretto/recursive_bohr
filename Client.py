@@ -102,7 +102,6 @@ class Client(BaseClient):
         self.__spawn_listener(serverAddr, port)
         self.__spawn_sender()
 
-        self.run() # TODO do we want to make this called by the user instead?
 
     def run(self):
         """
@@ -318,3 +317,4 @@ if __name__ == "__main__":
     
     name = input('Player Name: ')
     myCli = Client(ip, port, name)
+    myCli.run()

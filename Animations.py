@@ -102,9 +102,9 @@ class LinearMove(BaseJob):
         if prog >= 1:
             self.finish()
 
-class FlipAnimation(BaseJob):
+class GrowAndFadeAnimation(BaseJob):
     """
-    Moves an image from startPos to endPos over length of time duration #TODO what does this actually do
+    Grows and fades an image over time
     """
     def __init__(self, screen, pos, img, duration, startImmediately=True):
         """
@@ -136,7 +136,8 @@ class FlipAnimation(BaseJob):
 
     def step(self):
         """
-        TODO: REAASONABLE DOCUMENTATION
+        Grows the image from a single point to its full size while
+        fading it out
         """
         # Start job at time of first tick
         if not self.__startTime:
