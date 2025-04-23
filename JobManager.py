@@ -145,7 +145,7 @@ class JobWithTrigger(BaseJob):
 #******************************#
 #      Available Triggers      #
 #******************************#
-def DELAY_TRIGGER(delay): #TODO why caps
+def DELAY_TRIGGER(delay):
     """
     Creates a predicate that when evaluated returns whether delay seconds 
     have passed since time of first evaluation.
@@ -287,13 +287,12 @@ class JobManager():
         """
         Registers a job with this manager under the provided topic
 
-        ## TODO AIDEN double check PLEASE
         Parameters
         ----------
-        job: Animations.TYPE
+        job: BaseJob
             the animation to register
-        topic: str
-            A valid str for a topic created in this manager under which
+        topic: any
+            A valid topic created in this manager under which
             to register the animation
         stepOrder: TopicOrder.AFTER | TopicOrder.BEFORE
             Default TopicOrder.AFTER

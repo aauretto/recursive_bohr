@@ -15,7 +15,6 @@ class PlayCardAction():
         self.layoutIdx = layoutIdx
         self.midPileIdx = midPileIdx
 
-# TODO -- Send this to its own file
 class ClientStatePackage():
     """
     A package for communication about the game between the server and the client
