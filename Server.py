@@ -151,6 +151,7 @@ class Server(BaseServer):
             The message recieved from the client
 
         """
+        #TODO make a handle state specific message
         if self.__serverStatus == Server.ServerStatus.SETUP:
             # We only want to handle these types of messages in the SETUP phase
             match msg:

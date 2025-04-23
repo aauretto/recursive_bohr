@@ -53,10 +53,6 @@ class Client(BaseClient):
             with self.__lock:
                 return self.__status
             
-
-
-
-
     def __init__(self, serverAddr, port, name, timeout=5):
         """
          Constructor for the Client class
@@ -95,7 +91,7 @@ class Client(BaseClient):
         self.__spawn_listener(serverAddr, port)
         self.__spawn_sender()
 
-        self.run()
+        self.run() # TODO do we want to make this called by the user instead?
 
     def run(self):
         """
@@ -180,12 +176,12 @@ class Client(BaseClient):
         # Messages that should be handled the same regardless of client status
         match msg:
             case ("game-stopped", "player-left", who):
-                    self.stop_game()
+                    self.__stop_game()
                     print(f"{who} left the game. Closing...")
             case _:
-                self.handle_state_specific_msg(msg)
+                self.__handle_state_specific_msg(msg)
 
-    def handle_state_specific_msg(self, msg):      
+    def __handle_state_specific_msg(self, msg):      
         """
         Handles a message that only is applicable when in a certain state
 
@@ -231,15 +227,15 @@ class Client(BaseClient):
             match msg:
                 case ("game-stopped", "draw", _):
                     self.__gameResult = "draw"
-                    self.stop_game()
+                    self.__stop_game()
 
                 case ("game-stopped", "won", _):
                     self.__gameResult = "won"
-                    self.stop_game()
+                    self.__stop_game()
 
                 case ("game-stopped", "lost", winner):
                     self.__gameResult = "lost"
-                    self.stop_game()
+                    self.__stop_game()
 
                 case ("state", "new", csp): 
                     self.__state.update_state(csp)
@@ -259,7 +255,7 @@ class Client(BaseClient):
         else:
             print(f"Print in bad Client state while receiving {msg}")
 
-    def stop_game(self):
+    def __stop_game(self):
         """
         Set client status to stopping and gracefully stop the display
         """
