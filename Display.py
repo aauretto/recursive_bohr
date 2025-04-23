@@ -442,9 +442,7 @@ class Display():
             if selected:
                 (surf, rect) = highlights[selectedIdx]
                 self.__screen.blit(surf, rect)
-            elif selectedIdx is not None:
-                self.__remove_border_from(self.__screen, highlights, selectedIdx)
-                selectedIdx = None
+
 
             self.__animationManager.step_jobs()
 
@@ -466,13 +464,7 @@ class Display():
                     # Check if selecting one of our cards
                     for i, (card, card_rect) in enumerate(self.__cardObjs["me"]):
                         if card_rect.collidepoint(event.pos) and selectable[i]:  # Check if mouse is on one of our cards
-                            if selected:
-                                # Turn off highlight
-                                self.__remove_border_from(self.__screen, highlights, selectedIdx)
-                                selectedIdx = None
-                            
                             selected = True
-
                             selectedIdx = i
                             print(f"Selected {card}")
                             break
@@ -531,21 +523,6 @@ class Display():
         hl_rect = pygame.draw.rect(surf, color, (0, 0, rect.width + rect_add, rect.height + rect_add), width = width)  # Transparent center
         hl_rect.center = (rect.center[0] + cntr_offset, rect.center[1] + cntr_offset)
         return surf, hl_rect
-
-    def __remove_border(self, highlights, border_idx):
-        """
-        # TODO assess if we actually need this
-        """
-        (_, rect) = highlights[border_idx]
-        surf, rect = self.__make_border(0, 0, rect, self.__backgroundColor)
-        return surf, rect
-
-    def __remove_border_from(self, screen, highlights, border_idx):
-        """
-        # TODO also asses if we need this 
-        """
-        surf, rect = self.__remove_border(highlights, border_idx)
-        screen.blit(surf, rect)
 
     def final_state(self, result):
         """
