@@ -1,0 +1,105 @@
+### CS-21 Final Project README ###
+
+## Team Name: recursive_bohr
+## Members  : Aiden Auretto, Alyssa Williams, Simon Webber, Peter Scully
+## Date     : 4/28/25 
+
+### File Structure and Contents ###
+
+README:
+    This file.
+
+environment.yml:
+    yml file listing dependencies needed to run this project.
+
+images:
+    Directory containing source images for the game.
+    card_pngs: 
+        Subdirectory containing png images for only playing cards.
+
+Card.py:
+    Definitions for card objects.
+
+Deck.py:
+    The implementation of a deck of cards class.
+
+IPCutils.py:
+    Basic socket communications tools. The classes in this file are inherited 
+    from by client and server.
+
+MessageBrokers.py
+    Definitions for over the wire message protocols to be used by IPCUtils when
+    transmitting or receiving messages. Used by IPCUtils to send messages.
+
+Client.py:
+    The implementation of the client-side code for this project.
+    To launch the client side of this project, a user should run
+    `python Client.py`.
+
+Display.py:
+    The main driver for displaying the game to clients.
+
+Server.py
+    The implementation for the server that hosts a game. Users should run 
+    `python Server.py` to host a game at their IP address.
+
+ServerGameState.py
+    The class used by the server to represent current gamestate for both 
+    clients.
+
+SharedState.py
+    Implementations of objects that are passed between server and client.
+
+JobManager.py
+    A tool to interleave arbitrary job objects that can all be advanced one step
+    at a time. Used to manage animations for clients.
+
+Animations.py:
+    Definitions for animations to be shown by display.
+
+
+### Directions for Use ###
+
+1) Make sure required dependencies in environment.yml are met 
+   (incl. python >=3.10).
+2) On the machine that is to run the server, run python `Server.py`
+   - Note that the host IP and port is printed on stdout as: 
+     
+     XXX.XXX.XXX.XXX:PPPP
+     ^^^^^^^^^^^^^^^|^^^^
+            IP      |Port
+3) For each client that will play the game, run `python Client.py`.
+   This program will ask for the ip and port from step (2) as well as a name
+   for the player that is playing from that client (Jeremy perhaps).
+4) Once both clients are connected, the game should start autonatically.
+
+    Rules Summary
+    -------------
+    Each player has their own deck and begins by placing the top four cards from 
+    their deck face up in front of them in a row. This is called their layout
+    and is on the bottom of the window for each client. The opponent's layouy is
+    shown on top of the client window.
+
+    There are two piles in the middle of the screen that are shared among both 
+    players.
+
+    There are no turns taken in this game, everyone plays at the same time. A 
+    player can select a card to play from their layout by clicking on it, then 
+    place it on a center pile by clicking on that pile. 
+
+    A card can be played only if it is one higher or one lower than the card on
+    the top of the pile. The card's suit does not matter, and an ace can be 
+    played high or low.
+
+    If no players can make valid plays, they simultaneously flip the top card of 
+    their decks onto their respective face up piles and continue play. This is 
+    handled automatically by the game.
+
+    When a player plays all of their cards, they win.
+    If players cannot play any more cards and a flip cannot happen, the game 
+    ends. The player with fewer cards in their layout at this point wins unless
+    both players have the same number of cards, which causes a draw.
+
+Note: Once the game ends, clients can close the window safely. If any client 
+      closes the window while the game is running, the game ends immediately for
+      the other client too.
