@@ -12,12 +12,19 @@ from threading import Lock
 class Client(BaseClient):
 
     class ClientStatusValue(Enum):
+        """
+        The possible statuses the Client can have
+        """
         SETUP    = 0
         READYING = 1
         PLAYING  = 2
         STOPPING = 3
 
     class ClientStatus():
+        """
+        A monitor for ClientStatusValue to synchronize access across threads
+        and ensure it cannot be unstopped
+        """
         def __init__(self):
             """
             Constructor for ClientStatus, a monitored status indicator.
