@@ -96,7 +96,7 @@ class Display():
                     }
         
         self.__xpos = None
-        self.pile_xpos()
+        self.__pile_xpos()
 
         # Gets populated by card objects each pass of the run loop
         self.__cardObjs = {
@@ -110,7 +110,7 @@ class Display():
         pygame.display.set_caption(f"Spit!") # Default caption
         self.__clock = pygame.time.Clock()
 
-    def pile_xpos(self):
+    def __pile_xpos(self):
         self.__nMyPiles, self.__nTheirPiles, self.__nMidPiles = self.__gameState.shape()
         self.__xpos = {
                    "them" : [i * (self.__width // (self.__nTheirPiles + 1)) for i in range(1, self.__nTheirPiles + 1)],
@@ -202,7 +202,7 @@ class Display():
         # Make and place the cards on the screen
         myLayout, theirLayout, midPiles, selectable, myCardsLeft, theirCardsLeft = self.__gameState.get_state()
 
-        self.pile_xpos() # update sizes of each set of piles
+        self.__pile_xpos() # update sizes of each set of piles
 
         self.__update_layout(myLayout, "me")
         self.__update_layout(theirLayout, "them")
@@ -314,7 +314,7 @@ class Display():
         self.__status.update_status(Display.DisplayStatusValue.RUNNING)
         self.__msgQueue.put(('done-moving',))
 
-    def show_first_frame(self):
+    def __show_first_frame(self):
         """
         Set up the initial frame (all blank cards) and allow the player to quit
         """
@@ -342,7 +342,7 @@ class Display():
         
         print("Done showing initial frame")
 
-    def do_countdown(self, duration = 3):
+    def __do_countdown(self, duration = 3):
         # 3s Countdown by default
 
         # Custom manager so we dont muck with animation manager for this class
@@ -402,7 +402,7 @@ class Display():
         Runs the display loop that accepts player interaction
         """
 
-        self.show_first_frame()
+        self.__show_first_frame()
 
         if self.__status.get_status() != Display.DisplayStatusValue.STOPPING:
             caption = "Playing Spit! with "
@@ -412,7 +412,7 @@ class Display():
                     caption += ", "
         
             pygame.display.set_caption(caption)
-            self.do_countdown()
+            self.__do_countdown()
 
 
         # ==========================================================
@@ -434,12 +434,12 @@ class Display():
             # Handle visualization of player selecting a card
             highlights = []
             for (_, rect) in self.__cardObjs["me"]:
-                highlights.append(self.make_border(10, .5, rect, HIGHLIGHT_COLOR))
+                highlights.append(self.__make_border(10, .5, rect, HIGHLIGHT_COLOR))
             if selected:
                 (surf, rect) = highlights[selectedIdx]
                 self.__screen.blit(surf, rect)
             elif selectedIdx is not None:
-                self.remove_border_from(self.__screen, highlights, selectedIdx)
+                self.__remove_border_from(self.__screen, highlights, selectedIdx)
                 selectedIdx = None
 
             self.__animationManager.step_jobs()
@@ -465,7 +465,7 @@ class Display():
                         if card_rect.collidepoint(event.pos) and selectable[i]:  # Check if mouse is on one of our cards
                             if selected:
                                 # Turn off highlight
-                                self.remove_border_from(self.__screen, highlights, selectedIdx)
+                                self.__remove_border_from(self.__screen, highlights, selectedIdx)
                                 selectedIdx = None
                             
                             selected = True
@@ -507,7 +507,7 @@ class Display():
         text_rect = text_surface.get_rect(center=(self.__width // 2, height))
         self.__screen.blit(text_surface, text_rect)
 
-    def make_border(self, rect_add, cntr_offset, rect, color, width = 5):
+    def __make_border(self, rect_add, cntr_offset, rect, color, width = 5):
         """
         Creates a border
 
@@ -529,19 +529,19 @@ class Display():
         hl_rect.center = (rect.center[0] + cntr_offset, rect.center[1] + cntr_offset)
         return surf, hl_rect
 
-    def remove_border(self, highlights, border_idx):
+    def __remove_border(self, highlights, border_idx):
         """
         # TODO assess if we actually need this
         """
         (_, rect) = highlights[border_idx]
-        surf, rect = self.make_border(0, 0, rect, self.__backgroundColor)
+        surf, rect = self.__make_border(0, 0, rect, self.__backgroundColor)
         return surf, rect
 
-    def remove_border_from(self, screen, highlights, border_idx):
+    def __remove_border_from(self, screen, highlights, border_idx):
         """
         # TODO also asses if we need this 
         """
-        surf, rect = self.remove_border(highlights, border_idx)
+        surf, rect = self.__remove_border(highlights, border_idx)
         screen.blit(surf, rect)
 
     def final_state(self, result):
