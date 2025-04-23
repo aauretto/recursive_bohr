@@ -381,7 +381,6 @@ class Display():
         # TODO AIDEN
         """
         self.status = Display.DisplayStatus.STOPPING
-        self.msgQueue.put(None) # TODO Don't love this, do we consider putting this where this funciton is called
 
     def run(self):
         """
