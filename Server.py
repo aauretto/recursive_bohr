@@ -55,7 +55,11 @@ class Server(BaseServer):
         self.__state = ServerGameState(numPlayers=numPlayers, 
                                      numGamePiles=numGamePiles, 
                                      layoutSize=layoutSize)
-        
+    
+    #*********************************************************************#
+    #                   Driver functions for the Server                   #
+    #*********************************************************************#
+
     def start(self):
         """
         Starts up the server and run the game
@@ -74,42 +78,6 @@ class Server(BaseServer):
             # Begin the game
             self.__loop()
 
-    def __enough_joined(self):
-        """
-        Returns
-        -------
-        : bool
-            True if at least maxPlayers have connected otherwise False
-        """
-        return len(self.__currentPlayers) >= self.__maxPlayers
-
-    def __player_names(self):
-        """
-        Returns
-        -------
-        : list(str)
-            A list of all connected players user names
-        """
-        return list(map(lambda x: x['uname'], self.__currentPlayers.values()))
-    
-    def __all_ready(self):
-        """
-        Returns
-        -------
-        : bool
-            An indicator if enough players have the READY status
-        """
-        return all(map(lambda a : a["status"] == Server.ClientStatus.READY, self.__currentPlayers.values())) and self.__enough_joined()
-    
-    def __all_named(self):
-        """
-        Returns
-        -------
-        : bool
-            An indicator if every player has a user name      
-        """
-        return all(map(lambda x: x['uname'] != None, self.__currentPlayers.values())) and self.__enough_joined()
-
     def __loop(self):
         """
         Runs the game
@@ -118,90 +86,10 @@ class Server(BaseServer):
         print(f"Loop start status = {self.__serverStatus}")
         while self.__serverStatus == Server.ServerStatus.RUNNING:
             self.rx_message()
-    
-    def __terminate_game(self, winnerId):
-        """
-        Correctly parse the information that needs to be sent to stop_game
 
-        Parameters
-        ----------
-        winnerId: int | None
-            The id of the player that won or None if the game is a draw
-        
-        Returns
-        -------
-        None
-
-        """
-        if winnerId != None:
-            winner = self.__client_from_id(winnerId)
-            self.__stop_game("winner", data=winner)
-        else: # Draw
-            self.__stop_game("draw")
-    
-    def handle_message(self, client, msg):
-        """
-        Handles what the server should do upon recieving a given message
-
-        Parameters
-        ----------
-        client: socket.socket
-            The socket of the client who sent the msg
-        msg: any
-            The message recieved from the client
-
-        """
-        #TODO make a handle state specific message
-        if self.__serverStatus == Server.ServerStatus.SETUP:
-            # We only want to handle these types of messages in the SETUP phase
-            match msg:
-                case ("player-name", name):
-                    self.__currentPlayers[client]["uname"] = name
-                    if self.__all_named():
-                        self.broadcast_message(("all-names", self.__player_names()))
-                case ("ready",):
-                    self.__currentPlayers[client]['status'] = Server.ClientStatus.READY
-                    if self.__all_ready():
-                        print("Setting status to running")
-                        self.__serverStatus = Server.ServerStatus.RUNNING
-                case ("quitting",):
-                    self.__stop_game("player-left", self.__currentPlayers[client]['uname'])
-                case _:
-                    print(f"Received message {msg} in SETUP phase")
-       
-        elif self.__serverStatus == Server.ServerStatus.RUNNING:
-            # Handle these messages while the game is running
-            match msg:
-                case ("play", playAction):    
-                    self.__handle_play(client, playAction)
-                case ("quitting",):
-                    self.__stop_game("player-left", self.__currentPlayers[client]['uname'])
-                case ("done-moving",):
-                    self.__currentPlayers[client]['animating'] = False
-                    (gameOver, winnerId) = self.__state.game_over()
-                    if gameOver:
-                        self.__terminate_game(winnerId)
-                    else:
-                        self.__flip_if_able()
-
-    def __any_animating(self):
-        """
-        Check if any players are currently animating 
-
-        Returns
-        -------
-        : bool
-            True if any player is animating, else False
-        
-        """
-        return any([v['animating'] for v in self.__currentPlayers.values()])
-    
-    def __make_all_animating(self):
-        """
-        Sets all the players to be animating
-        """
-        for v in self.__currentPlayers.values():
-            v['animating'] = True
+    #*********************************************************************#
+    #                    Synchronizers for flip event                     #
+    #*********************************************************************#   
 
     def __flip_if_able(self):
         """
@@ -224,70 +112,119 @@ class Server(BaseServer):
             return True
         return False
 
-    def __client_from_id(self, id):
+    def __make_all_animating(self):
         """
-        Get the socket object of the winner from their id
-
-        Parameters
-        ----------
-        id: int
-            The id number of the player who won
-
-        Returns
-        -------
-        client: socket.socket
-            The socket of the player who won
+        Sets all the players to be animating
         """
-        for client, clientDict in self.__currentPlayers.items():
-            if clientDict["id"] == id:
-                return client
+        for v in self.__currentPlayers.values():
+            v['animating'] = True
+
+    #*********************************************************************#
+    #       Functions and helpers for sending and recieving messages      #
+    #*********************************************************************#
+    def handle_message(self, client, msg):
+            """
+            Handles what the server should do upon recieving a given message
+
+            Parameters
+            ----------
+            client: socket.socket
+                The socket of the client who sent the msg
+            msg: any
+                The message recieved from the client
+
+            """
+            #TODO make a handle state specific message
+            if self.__serverStatus == Server.ServerStatus.SETUP:
+                # We only want to handle these types of messages in the SETUP phase
+                match msg:
+                    case ("player-name", name):
+                        self.__currentPlayers[client]["uname"] = name
+                        if self.__all_named():
+                            self.broadcast_message(("all-names", self.__player_names()))
+                    case ("ready",):
+                        self.__currentPlayers[client]['status'] = Server.ClientStatus.READY
+                        if self.__all_ready():
+                            print("Setting status to running")
+                            self.__serverStatus = Server.ServerStatus.RUNNING
+                    case ("quitting",):
+                        self.__stop_game("player-left", self.__currentPlayers[client]['uname'])
+                    case _:
+                        print(f"Received message {msg} in SETUP phase")
+        
+            elif self.__serverStatus == Server.ServerStatus.RUNNING:
+                # Handle these messages while the game is running
+                match msg:
+                    case ("play", playAction):    
+                        self.__handle_play(client, playAction)
+                    case ("quitting",):
+                        self.__stop_game("player-left", self.__currentPlayers[client]['uname'])
+                    case ("done-moving",):
+                        self.__currentPlayers[client]['animating'] = False
+                        (gameOver, winnerId) = self.__state.game_over()
+                        if gameOver:
+                            self.__terminate_game(winnerId)
+                        else:
+                            self.__flip_if_able()
 
     def __handle_play(self, client, playAction):
+            """
+            Handles when a client attempts to take an action
+
+            Parameters
+            ----------
+            client: socket.socket
+                The socket of the client attempting the move
+            playAction: PlayCardAction
+                The move attempted by the player
+            """
+            # Get the client idx and attempt the move
+            clientIdx = self.__currentPlayers[client]["id"]
+            validMove = self.__state.play_card(clientIdx, 
+                                                playAction.layoutIdx, 
+                                                playAction.midPileIdx)
+            
+            # If the move is allowed we send the new gamestate back to everyone
+            if validMove:
+                self.exclusive_broadcast([client], ("move", "them", playAction.layoutIdx, "mid", playAction.midPileIdx))
+                self.tx_message(client, ("move", "me", playAction.layoutIdx, "mid", playAction.midPileIdx))
+                self.__broadcast_gamestate("new")
+                self.__currentPlayers[client]['animating'] = True
+            else:
+                # Otherwise we tell the client they made a bad move
+                self.tx_message(client, 
+                                ("bad-move", 
+                                playAction.layoutIdx, 
+                                playAction.midPileIdx))
+
+    def handle_connection(self):
+            """
+            Handles a new connection to the server
+            """
+            # If the game is full, reject new connections
+            if len(self.__currentPlayers) >= self.__maxPlayers:
+                self.reject_connections()
+            else:
+                # Otherwise accept the new connections and initialize them
+                [newClient] = self.accept_connections()
+                self.__currentPlayers[newClient] = {'id': len(self.__currentPlayers),
+                                                'status': Server.ClientStatus.CONNECTED,
+                                                'uname' : None,
+                                                'animating': True}
+                self.tx_message(newClient, ("ip-info", get_ip()))
+                self.tx_message(newClient, ('name-request',))
+        
+    def remove_client(self, client):
         """
-        Handles when a client attempts to take an action
+        Disconnects the client and stops the game
 
         Parameters
         ----------
         client: socket.socket
-            The socket of the client attempting the move
-        playAction: PlayCardAction
-            The move attempted by the player
+            The socket of the player who disconnected
         """
-        # Get the client idx and attempt the move
-        clientIdx = self.__currentPlayers[client]["id"]
-        validMove = self.__state.play_card(clientIdx, 
-                                            playAction.layoutIdx, 
-                                            playAction.midPileIdx)
-        
-        # If the move is allowed we send the new gamestate back to everyone
-        if validMove:
-            self.exclusive_broadcast([client], ("move", "them", playAction.layoutIdx, "mid", playAction.midPileIdx))
-            self.tx_message(client, ("move", "me", playAction.layoutIdx, "mid", playAction.midPileIdx))
-            self.__broadcast_gamestate("new")
-            self.__currentPlayers[client]['animating'] = True
-        else:
-            # Otherwise we tell the client they made a bad move
-            self.tx_message(client, 
-                            ("bad-move", 
-                            playAction.layoutIdx, 
-                            playAction.midPileIdx))
-
-    def handle_connection(self):
-        """
-        Handles a new connection to the server
-        """
-        # If the game is full, reject new connections
-        if len(self.__currentPlayers) >= self.__maxPlayers:
-            self.reject_connections()
-        else:
-            # Otherwise accept the new connections and initialize them
-            [newClient] = self.accept_connections()
-            self.__currentPlayers[newClient] = {'id': len(self.__currentPlayers),
-                                              'status': Server.ClientStatus.CONNECTED,
-                                              'uname' : None,
-                                              'animating': True}
-            self.tx_message(newClient, ("ip-info", get_ip()))
-            self.tx_message(newClient, ('name-request',))
+        super().remove_client(client)
+        self.__stop_game("player-left", self.__currentPlayers[client]["uname"])
     
     def __broadcast_gamestate(self, stateTag: str):
         """
@@ -302,8 +239,7 @@ class Server(BaseServer):
             # Get the gamestate package for that specific client and send it
             pkg = self.__package_gamestate(client)
             self.tx_message(client, ('state', stateTag, pkg))
-            
-    
+
     def __package_gamestate(self, client):
         """
         Pulls out the elements from our gamestate that a specific client needs 
@@ -325,19 +261,31 @@ class Server(BaseServer):
         oppLayout = opponentInfo[otherPlayerIdx]['layout']
         theirDeckSize = opponentInfo[otherPlayerIdx]['cardsLeft']
         return ClientStatePackage(playerLayout, oppLayout, midPiles, myDeckSize, theirDeckSize)
+    
+    #*********************************************************************#
+    #        Internal functions for gracefully ending the game            #
+    #*********************************************************************#
 
-    def remove_client(self, client):
-        """
-        Disconnects the client and stops the game
+    def __terminate_game(self, winnerId):
+            """
+            Correctly parse the information that needs to be sent to stop_game
 
-        Parameters
-        ----------
-        client: socket.socket
-            The socket of the player who disconnected
-        """
-        super().remove_client(client)
-        self.__stop_game("player-left", self.__currentPlayers[client]["uname"])
-        
+            Parameters
+            ----------
+            winnerId: int | None
+                The id of the player that won or None if the game is a draw
+            
+            Returns
+            -------
+            None
+
+            """
+            if winnerId != None:
+                winner = self.__client_from_id(winnerId)
+                self.__stop_game("winner", data=winner)
+            else: # Draw
+                self.__stop_game("draw")
+            
     def __stop_game(self, reason, data=None):
         """
         Ends the game 
@@ -358,6 +306,80 @@ class Server(BaseServer):
                 self.tx_message(data, ("game-stopped", "won", "CONGRATS!"))
             else:
                 self.broadcast_message(('game-stopped', reason, data))  
+
+    #*********************************************************************#
+    #                Internal Functions for status checking               #
+    #*********************************************************************#
+
+    def __enough_joined(self):
+        """
+        Returns
+        -------
+        : bool
+            True if at least maxPlayers have connected otherwise False
+        """
+        return len(self.__currentPlayers) >= self.__maxPlayers
+    
+    def __all_ready(self):
+        """
+        Returns
+        -------
+        : bool
+            An indicator if enough players have the READY status
+        """
+        return all(map(lambda a : a["status"] == Server.ClientStatus.READY, self.__currentPlayers.values())) and self.__enough_joined()
+    
+    def __all_named(self):
+        """
+        Returns
+        -------
+        : bool
+            An indicator if every player has a user name      
+        """
+        return all(map(lambda x: x['uname'] != None, self.__currentPlayers.values())) and self.__enough_joined()
+    
+    def __any_animating(self):
+        """
+        Check if any players are currently animating 
+
+        Returns
+        -------
+        : bool
+            True if any player is animating, else False
+        
+        """
+        return any([v['animating'] for v in self.__currentPlayers.values()])
+    
+    #*********************************************************************#
+    #                       Internal helper getters                       #
+    #*********************************************************************#
+    
+    def __player_names(self):
+        """
+        Returns
+        -------
+        : list(str)
+            A list of all connected players user names
+        """
+        return list(map(lambda x: x['uname'], self.__currentPlayers.values()))
+
+    def __client_from_id(self, id):
+        """
+        Get the socket object of the winner from their id
+
+        Parameters
+        ----------
+        id: int
+            The id number of the player who won
+
+        Returns
+        -------
+        client: socket.socket
+            The socket of the player who won
+        """
+        for client, clientDict in self.__currentPlayers.items():
+            if clientDict["id"] == id:
+                return client
 
 # SERVER_ADDR = "localhost"
 SERVER_ADDR = "0.0.0.0"
