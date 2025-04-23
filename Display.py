@@ -574,7 +574,7 @@ class Display():
         None 
         
         """
-        # Calc start and end pos
+        # TODO AIDEN
         srcYpos = self.__vpos[src]
         srcXpos = self.__xpos[src][srcPile]
 
