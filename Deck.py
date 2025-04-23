@@ -13,12 +13,12 @@ class Deck():
          -------
          : Deck
          """
-        self.theDeck = []
+        self.__theDeck = []
 
         # create deck of 52 standard cards:
         for s in (Card.Suit.SPADES, Card.Suit.HEARTS, Card.Suit.CLUBS, Card.Suit.DIAMONDS):
             for r in range(1, 14):
-                self.theDeck.append(Card(r, s))
+                self.__theDeck.append(Card(r, s))
                 
     def shuffle(self):
         """
@@ -28,7 +28,7 @@ class Deck():
          -------
          None
          """
-        random.shuffle(self.theDeck)
+        random.shuffle(self.__theDeck)
         
     def __len__(self):
         """
@@ -39,7 +39,7 @@ class Deck():
          : int 
              the number of cards currently in the deck
          """
-        return len(self.theDeck)
+        return len(self.__theDeck)
 
     def deal(self, numToDeal):
         """
@@ -59,8 +59,8 @@ class Deck():
         if numToDeal > self.__len__():
             raise EmptyDeckError("Deck is empty")
         
-        toRet = self.theDeck[0:numToDeal]
-        self.theDeck = self.theDeck[numToDeal:]
+        toRet = self.__theDeck[0:numToDeal]
+        self.__theDeck = self.__theDeck[numToDeal:]
         return toRet
     
     def is_empty(self):
