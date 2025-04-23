@@ -7,6 +7,7 @@ from JobManager import *
 import Animations
 import os
 from enum import Enum
+from threading import Lock
 
 FPS = 60
 CARD_DIR = './images/card_pngs/'
@@ -19,10 +20,24 @@ MY_VERT_POS = 1
 
 class Display():
 
-    class DisplayStatus(Enum):
+    class DisplayStatusValue(Enum):
         SETUP = 0
         RUNNING = 1
         STOPPING = 2
+
+    class DisplayStatus:
+        def __init__(self):
+            self.lock = Lock()
+            self.status = Display.DisplayStatusValue.SETUP
+
+        def update_status(self, status):
+            with self.lock:
+                if self.status != Display.DisplayStatusValue.STOPPING:
+                    self.status = status
+        
+        def get_status(self):
+            with self.lock:
+                return self.status
 
     def __init__(self, clientGame: ClientState, msgQueue: Queue, screenWidth = 1000, screenHeight = 800, backgroundColor=(30, 92, 58)):
         """
@@ -57,7 +72,7 @@ class Display():
         # Initialize other internal variables
         self.targetCardWidth = self.width // 10
         self.names = None
-        self.status = Display.DisplayStatus.SETUP
+        self.status = Display.DisplayStatus()
 
         # Create animation manager that handles drawing and moving cards
         self.animationManager = JobManager()
@@ -296,7 +311,7 @@ class Display():
         """
         Set the display status to be running
         """
-        self.status = Display.DisplayStatus.RUNNING
+        self.status.update_status(Display.DisplayStatusValue.RUNNING)
         self.msgQueue.put(('done-moving',))
 
     def show_first_frame(self):
@@ -310,7 +325,7 @@ class Display():
         waitingManager.register_job(waitingOverlay, "splashes")
     
         # Display the first frame 
-        while self.status == Display.DisplayStatus.SETUP:
+        while self.status.get_status() == Display.DisplayStatusValue.SETUP:
             self.clock.tick(FPS)
             self.screen.fill(self.backgroundColor)
 
@@ -320,7 +335,7 @@ class Display():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    self.status = Display.DisplayStatus.STOPPING
+                    self.status.update_status(Display.DisplayStatusValue.STOPPING)
                     self.msgQueue.put(("quitting",))
                     return
             pygame.display.flip()
@@ -360,7 +375,7 @@ class Display():
 
 
         startTime = time.time()
-        while not countDownManager.all_animations_stopped() and self.status != Display.DisplayStatus.STOPPING:
+        while not countDownManager.all_animations_stopped() and self.status.get_status() != Display.DisplayStatusValue.STOPPING:
             self.clock.tick(FPS)
         
             self.screen.fill(self.backgroundColor)
@@ -371,7 +386,7 @@ class Display():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    self.status = Display.DisplayStatus.STOPPING
+                    self.status.update_status(Display.DisplayStatusValue.STOPPING)
                     self.msgQueue.put(("quitting",))
                     return
             pygame.display.flip()
@@ -380,7 +395,7 @@ class Display():
         """
         # TODO AIDEN
         """
-        self.status = Display.DisplayStatus.STOPPING
+        self.status.update_status(Display.DisplayStatusValue.STOPPING)
 
     def run(self):
         """
@@ -389,7 +404,7 @@ class Display():
 
         self.show_first_frame()
 
-        if self.status != Display.DisplayStatus.STOPPING:
+        if self.status.get_status() != Display.DisplayStatusValue.STOPPING:
             caption = "Playing Spit! with "
             for i, name in enumerate(self.names):
                 caption += name
@@ -408,7 +423,7 @@ class Display():
         selected = False
         selectedIdx = None
 
-        while self.status != Display.DisplayStatus.STOPPING:
+        while self.status.get_status() != Display.DisplayStatusValue.STOPPING:
             self.clock.tick(FPS)
 
             # Draw BG
@@ -439,7 +454,7 @@ class Display():
                     # Stops sender and sends out quitting msg to server
                     self.msgQueue.put(("quitting",))
                     # TODO maybe call stop game
-                    self.status = Display.DisplayStatus.STOPPING
+                    self.status.update_status(Display.DisplayStatusValue.STOPPING)
 
                 # Select card when mouse button is pressed
                 if event.type == pygame.MOUSEBUTTONDOWN:

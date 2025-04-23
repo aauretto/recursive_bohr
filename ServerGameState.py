@@ -25,6 +25,7 @@ class Player:
         self.deck = deck
         self.name = name
         self.id = id
+        deck.deal(40)
         self._layout = deck.deal(layoutSize)
 
     def get_layout(self):
@@ -148,9 +149,9 @@ class ServerGameState:
         flippedPlayers = []
 
         for i in range(len(self.players)):
-            if not self.players[i].deck.is_empty():
-                dealtArray = self.players[i].deck.deal(1)
-                self.game_piles[i] = dealtArray[0]
+            if not self.players[i].cards_left() == 0:
+                dealtCard = self.players[i].deal_card()
+                self.game_piles[i] = dealtCard
                 flippedPlayers.append(i)
         return flippedPlayers
     
