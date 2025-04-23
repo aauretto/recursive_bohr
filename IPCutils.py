@@ -7,6 +7,7 @@
 import socket
 import select
 import MessageBrokers
+from abc import ABC, abstractmethod
 
 #=============== Any Exceptions related to socket comms go here ===============#
 class UnableToConnectError(Exception):
@@ -30,7 +31,7 @@ def get_ip():
 # Purpose:
 #     Class that wraps socket functionality into a basic transmit and receive
 #     functions a client could use to connect to and communitcate with a server.
-class BaseServer:
+class BaseServer(ABC):
     def __init__(self, 
                  host : str, 
                  port : int, 
@@ -191,6 +192,7 @@ class BaseServer:
         """
         self.accept_connections()
 
+    @abstractmethod
     def handle_message(self, client, msg):
         """
         Echos messages to all clients. Override this for server-specific 
@@ -203,10 +205,6 @@ class BaseServer:
         msg: any
             The message recieved from the client
         """
-        if msg == STOP_SERVER_MSG: #TODO Aiden how does this actully work, STOP_SERVER_MSG doesn't appean to exist??
-            self.stop()
-            return
-        self.broadcast_message(msg)
 
     def stop(self):
         """
@@ -236,7 +234,7 @@ class BaseServer:
 # Purpose:
 #     Class that wraps socket functionality into a basic transmit and receive
 #     functions a client could use to connect to and communitcate with a server.
-class BaseClient:
+class BaseClient(ABC):
     def __init__(self, msgBroker = MessageBrokers.LenAndPayload()):
         """
         Constructor for the BaseClient class        
@@ -305,6 +303,7 @@ class BaseClient:
         msg = self._msgBroker.rx(self._sock)
         return self.handle_message(msg)
 
+    @abstractmethod
     def handle_message(self, msg):
         """
         What to do when we get a message. Override this to define custom 
@@ -315,5 +314,5 @@ class BaseClient:
         msg: any
             The received message
         """
-        print(msg)
+
 
