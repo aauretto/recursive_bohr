@@ -397,7 +397,8 @@ class Display():
 
     def stop_display(self):
         """
-        # TODO AIDEN
+        Updates the dispaly status to stopping, effectively starting the 
+        shutdown process for the running display
         """
         self.__status.update_status(Display.DisplayStatusValue.STOPPING)
 

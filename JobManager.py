@@ -272,12 +272,21 @@ class JobManager():
 
     def register_job(self, job, topic, stepOrder=TopicOrder.AFTER):
         """
-        ## TODO AIDEN FIX PLEASE
-        Register an job under a topic with some topicPiority.
-        Jobs are rendered from BEFORE to AFTER priority. Any job registered
-        with BEFORE priority will be drawn before all previously registered jobs
-        within the topic and AFTER priority will be drawn after previously
-        registered jobs in the topic. 
+        Registers a job with this manager under the provided topic
+
+        ## TODO AIDEN double check PLEASE
+        Parameters
+        ----------
+        job: Animations.TYPE
+            the animation to register
+        topic: str
+            A valid str for a topic created in this manager under which
+            to register the animation
+        stepOrder: TopicOrder.AFTER | TopicOrder.BEFORE
+            Default TopicOrder.AFTER
+            Any job registered with BEFORE priority will be drawn before all 
+            previously registered jobs within the topic and AFTER priority will 
+            be drawn after previouslyregistered jobs in the topic. 
         """
         with self.__jobLock:
             self.__allTopics[topic].register_job(job, stepOrder)
