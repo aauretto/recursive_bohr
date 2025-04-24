@@ -2,7 +2,10 @@ from IPCutils import *
 from ServerGameState import *
 from enum import Enum
 from functools import *
-from SharedState import ClientStatePackage, PlayCardAction
+from SharedState import ClientStatePackage
+
+# Rate at which we break to check for incoming signals while running the server 
+SOCKET_TIMEOUT = 1 #s
 
 class Server(BaseServer):
     class ClientStatus(Enum):
@@ -48,7 +51,8 @@ class Server(BaseServer):
         """
         # Super takes host addr, port, and max length of incoming connection
         # request queue
-        super().__init__(host, port, numPlayers)
+        super().__init__(host, port, numPlayers, timeout=SOCKET_TIMEOUT)
+        
         # Maps clients to idx for checking moves in state
         self.__currentPlayers = {}
         self.__maxPlayers = numPlayers
@@ -80,10 +84,9 @@ class Server(BaseServer):
         """
         Runs the game
         """
-        ### TODO SOCKET TIMEOUT THINS
         while self.__serverStatus == Server.ServerStatus.RUNNING:
             self.rx_message()
-
+                
     #*********************************************************************#
     #                    Synchronizers for flip event                     #
     #*********************************************************************#   

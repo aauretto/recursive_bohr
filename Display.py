@@ -69,7 +69,9 @@ class Display():
     #                      Constructor and Destructor                     #
     #*********************************************************************#
 
-    def __init__(self, clientGame: ClientState, msgQueue: Queue, screenWidth = 1000, screenHeight = 800, backgroundColor=(30, 92, 58)):
+    def __init__(self, clientGame: ClientState, 
+                 msgQueue: Queue, screenWidth = 1000, 
+                 screenHeight = 800, backgroundColor=(30, 92, 58)):
         """
         A constructor for the display object
 
@@ -123,8 +125,10 @@ class Display():
                                              // (VERT_DIVS),
                     }
         
-        # Get the initial state of the game to display card x positions correctly
-        self.__nMidPiles, self.__nTheirPiles, self.__nMyPiles = self.__gameState.shape()
+        # Get the initial state of the game to display card x positions 
+        # correctly
+        self.__nMidPiles, self.__nTheirPiles, self.__nMyPiles \
+            = self.__gameState.shape()
         self.__xpos = None
         self.__pile_xpos()
 
@@ -182,10 +186,12 @@ class Display():
         """
         img = pygame.image.load(CARD_DIR + str(card) + '.png')
         img = pygame.transform.scale(img, 
-                            (img.get_width() // \
-                             math.ceil(img.get_width() / self.__targetCardWidth), 
-                             img.get_height() // \
-                             math.ceil(img.get_width() / self.__targetCardWidth)))
+                            (img.get_width() //
+                             math.ceil(img.get_width() /
+                                    self.__targetCardWidth), 
+                             img.get_height() //
+                             math.ceil(img.get_width() / 
+                                    self.__targetCardWidth)))
         return img
 
     #*********************************************************************#
@@ -211,15 +217,23 @@ class Display():
 
     def __show_first_frame(self):
         """
-        Set up the initial frame (all blank cards) and allow the player to quit
+        Set up the initial frame (waiting for opponent) while allowing the 
+        player to quit
         """
-        #TODO Aiden doc this
-        waitingOverlay = Animations.OverlayAndText(self.__screen, (128,128,128,200), "Waiting for Opponent...", (self.__width // 2, 270))
+
+        # Manager for the animations in this screen only
         waitingManager = JobManager() 
         waitingManager.create_topic("splashes", 0)
-        waitingManager.register_job(waitingOverlay, "splashes")
+        
+        # Show gray screen with "waiting for opponent" on it:
+        waitingManager.register_job(
+            Animations.OverlayAndText(self.__screen, 
+                                      (128,128,128,200), 
+                                      "Waiting for Opponent...",
+                                      (self.__width // 2, 270)), 
+                                    "splashes")
     
-        # Display the first frame 
+        # Run a loop that displays the screen and lets the user quit
         while self.__status.get_status() == Display.DisplayStatusValue.SETUP:
             self.__clock.tick(FPS)
             self.__screen.fill(self.__backgroundColor)
@@ -230,48 +244,87 @@ class Display():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    self.__status.update_status(Display.DisplayStatusValue.STOPPING)
+                    self.__status.update_status(
+                        Display.DisplayStatusValue.STOPPING)
                     self.__msgQueue.put(("quitting",))
                     return
             pygame.display.flip()
         
     def __do_countdown(self, duration = 3):
-        # 3s Countdown by default #TODO Aiden doc this
+        """
+        Display initial countdown screen
+        
+        Parameters
+        ----------
+        duration: float
+            Time in s for the countdown to last. (will countdown from 3 
+            regardless of value of duration with the time between each digit
+            being duration / 3)
+        """
 
         # Custom manager so we dont muck with animation manager for this class
         countDownManager = JobManager()
         countDownManager.create_topic("splashes")
 
+        # Image to show when countdown is over
         goImg = pygame.image.load("./images/go.png")
         goImg = pygame.transform.scale(goImg, (600,450))
 
+        # Each "showX" job displays a digit and queues the next digit to 
+        # display after a third of the countdown has passed
+        show3inner = Animations.OverlayAndText(self.__screen, 
+                                               (0,0,0,0), 
+                                               "3", 
+                                               (self.__width // 2 - 100, 260),
+                                               textColor=(255,0,0))
+        show2inner = Animations.OverlayAndText(self.__screen, 
+                                               (0,0,0,0), 
+                                               "2", 
+                                               (self.__width // 2, 260),
+                                               textColor=(255,0,0))
+        show1inner = Animations.OverlayAndText(self.__screen, 
+                                               (0,0,0,0), 
+                                               "1", 
+                                               (self.__width // 2 + 100, 260),
+                                               textColor=(255,0,0))
+        showGo = Animations.GrowAndFadeAnimation(self.__screen, 
+                                                 (self.__width // 2, 
+                                                 self.__height // 2), 
+                                                 goImg, 
+                                                 1, 
+                                                 startImmediately=False)
 
-        # Each "showX" job displays a digit and queues the next digit to display after a third of the countdown has passed
-        show3inner = Animations.OverlayAndText(self.__screen, (0,0,0,0), "3", (self.__width // 2 - 100, 260), textColor=(255,0,0))
-        show2inner = Animations.OverlayAndText(self.__screen, (0,0,0,0), "2", (self.__width // 2      , 260), textColor=(255,0,0))
-        show1inner = Animations.OverlayAndText(self.__screen, (0,0,0,0), "1", (self.__width // 2 + 100, 260), textColor=(255,0,0))
-        showGo     = Animations.GrowAndFadeAnimation(self.__screen, (self.__width // 2, self.__height // 2), goImg, 1, startImmediately=False)
-
-
-        show1 = JobWithTrigger(show1inner, DELAY_TRIGGER(duration/3), lambda: show1.finish(), startImmediately=False, triggerOnce=True)
-        show2 = JobWithTrigger(show2inner, DELAY_TRIGGER(duration/3), lambda: show1.start(), startImmediately=False, triggerOnce=True)
-        show3 = JobWithTrigger(show3inner, DELAY_TRIGGER(duration/3), lambda: show2.start(), startImmediately=True, triggerOnce=True)
-
+        # Link all jobs so that we count 3 -> 2 -> 1 -> GO! then remove them 
+        # all when we are done
+        show1 = JobWithTrigger(show1inner, DELAY_TRIGGER(duration/3), 
+                               lambda: show1.finish(), 
+                               startImmediately=False, triggerOnce=True)
+        show2 = JobWithTrigger(show2inner, DELAY_TRIGGER(duration/3), 
+                               lambda: show1.start(), 
+                               startImmediately=False, triggerOnce=True)
+        show3 = JobWithTrigger(show3inner, DELAY_TRIGGER(duration/3), 
+                               lambda: show2.start(), 
+                               startImmediately=True, triggerOnce=True)
         show1.add_successor(showGo)
         show1.add_dependent(show2)
         show1.add_dependent(show3)
 
+        # Send jobs to manager
         countDownManager.register_job(show3,  "splashes")
         countDownManager.register_job(show2,  "splashes")
         countDownManager.register_job(show1,  "splashes")
         countDownManager.register_job(showGo, "splashes")
 
-
-        while not countDownManager.all_animations_stopped() and self.__status.get_status() != Display.DisplayStatusValue.STOPPING:
+        # Loop that shows initial state and a countdown
+        while not countDownManager.all_animations_stopped() and \
+              self.__status.get_status() != Display.DisplayStatusValue.STOPPING:
+            
+            # Background and cards
             self.__clock.tick(FPS)
-        
             self.__screen.fill(self.__backgroundColor)
             self.__update_layouts()
+
+            # Countdown animations
             countDownManager.step_jobs()
 
             # Allow players to quit but no other interaction
@@ -533,20 +586,35 @@ class Display():
         # Loop through the cards (and their locations) that are being flipped
         for (card, pileIdx) in zip(cards, pileIdxs):
             
-            # TODO Aiden what is happening here
+            # Get images and locations needed for this animation. When we flip 
+            # we hold the old card over the position we are flipping into and 
+            # move the new card from the side of the screen to cover it.
+            # This lets us see the card that was in the middle pile get covered
+            # correctly.
             oldImg, _ = self.__cardObjs["mid"][pileIdx]
             newImg = self.__cardLookup[str(card)]
         
             destYpos = self.__vpos["mid"]
             destXpos = self.__xpos["mid"][pileIdx]
 
-            # Comes in from left or right?
+            # Determine starting position of card
             sideParity = -1 if pileIdx < self.__nMidPiles / 2 else 1
             srcYpos = self.__vpos["mid"]
-            srcXpos = (self.__width // 2) + sideParity * 0.5 * (self.__width + newImg.get_width())
+            srcXpos = ((self.__width // 2) + sideParity * 0.5 
+                      * (self.__width + newImg.get_width()))
             
-            job = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.__screen, newImg)
-            holdJob = Animations.ShowImage(self.__screen, oldImg, (destXpos, destYpos))
+            # Create an animation that moves new card into middle and one that
+            # shows old card on top of current middle pile so that we don't
+            # see state update immediately. Make the animation that shows
+            # the old card stop when the new card has covered it completely.
+            job = Animations.LinearMove((srcXpos, srcYpos), 
+                                        (destXpos, destYpos), 
+                                        duration, 
+                                        self.__screen, 
+                                        newImg)
+            holdJob = Animations.ShowImage(self.__screen, 
+                                           oldImg, 
+                                           (destXpos, destYpos))
             job.add_dependent(holdJob)
             self.__animationManager.register_job(job, "dynamic")
             self.__animationManager.register_job(holdJob, "static")

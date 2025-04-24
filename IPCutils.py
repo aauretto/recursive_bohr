@@ -36,7 +36,8 @@ class BaseServer(ABC):
                  host : str, 
                  port : int, 
                  qLen : int = 1, 
-                 msgBroker = MessageBrokers.LenAndPayload()):
+                 msgBroker = MessageBrokers.LenAndPayload(),
+                 timeout   = None):
         """
         Constructor for the Base Server
 
@@ -55,10 +56,14 @@ class BaseServer(ABC):
                 rx(socket)          -- receives a message over a socket
                 Defines the over-the-wire protocol this client uses and should
                 be the same for both server and client.
+        timeout: float
+            A time (in s) that the server will wait for a message before taking
+            a break to handle signals.
         """
         self._host = host
         self._port = port
         self._msgBroker = msgBroker
+        self.__timeout = timeout
         
         # List of all open connections
         self._clients = []
@@ -166,12 +171,13 @@ class BaseServer(ABC):
         """
         readable, _, _ = select.select([self._sock] + self._clients, 
                                        [], 
-                                       self._clients)
+                                       self._clients,
+                                       self.__timeout)
 
         for client in readable:
             if not self._keepGoing:
                 return
-            
+
             if client is self._sock:
                 self.handle_connection()
             else:
