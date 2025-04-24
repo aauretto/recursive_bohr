@@ -236,7 +236,7 @@ class Display():
             pygame.display.flip()
         
     def __do_countdown(self, duration = 3):
-        # 3s Countdown by default
+        # 3s Countdown by default #TODO Aiden doc this
 
         # Custom manager so we dont muck with animation manager for this class
         countDownManager = JobManager()
@@ -267,7 +267,6 @@ class Display():
         countDownManager.register_job(showGo, "splashes")
 
 
-        startTime = time.time()
         while not countDownManager.all_animations_stopped() and self.__status.get_status() != Display.DisplayStatusValue.STOPPING:
             self.__clock.tick(FPS)
         

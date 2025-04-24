@@ -3,7 +3,6 @@ from ServerGameState import *
 from enum import Enum
 from functools import *
 from SharedState import ClientStatePackage, PlayCardAction
-import socket
 
 class Server(BaseServer):
     class ClientStatus(Enum):

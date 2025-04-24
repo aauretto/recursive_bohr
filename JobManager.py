@@ -1,4 +1,3 @@
-import pygame
 import threading
 from enum import Enum
 from abc import ABC, abstractmethod

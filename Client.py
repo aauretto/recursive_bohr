@@ -1,4 +1,3 @@
-import time
 from IPCutils import *
 from SharedState import ClientState
 import threading
