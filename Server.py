@@ -59,15 +59,19 @@ class Server(BaseServer):
         self.__serverStatus = Server.ServerStatus.SETUP
 
         self.__state = ServerGameState(numPlayers=numPlayers, 
-                                     numGamePiles=numGamePiles, 
-                                     layoutSize=layoutSize)
+                                       numGamePiles=numGamePiles, 
+                                       layoutSize=layoutSize)
 
     def start(self):
         """
         Starts up the server and run the game
         """
         while self.__serverStatus == Server.ServerStatus.SETUP:
-            self.rx_message()
+            try:
+                self.rx_message()
+            except KeyboardInterrupt:
+                print("Server stopped with Keyboard")
+                self.__stop_game("server-killed")
 
         # When we're done with SETUP, keep going if we are RUNNING
         if self.__serverStatus == Server.ServerStatus.RUNNING:
@@ -85,7 +89,11 @@ class Server(BaseServer):
         Runs the game
         """
         while self.__serverStatus == Server.ServerStatus.RUNNING:
-            self.rx_message()
+            try:
+                self.rx_message()
+            except KeyboardInterrupt:
+                print("Server stopped with Keyboard")
+                self.__stop_game("server-killed")
                 
     #*********************************************************************#
     #                    Synchronizers for flip event                     #

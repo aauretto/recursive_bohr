@@ -192,6 +192,9 @@ class Client(BaseClient):
             case ("game-stopped", "player-left", who):
                     self.__stop_game()
                     print(f"{who} left the game. Closing...")
+            case ("game-stopped", "server-killed", _):
+                    self.__stop_game()
+                    print(f"Server dies. Closing...")
             case _:
                 if self.__status.get_status() == Client.ClientStatusValue.SETUP:
                     self.__handle_setup_message(msg)
