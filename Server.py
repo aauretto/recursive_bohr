@@ -158,8 +158,10 @@ class Server(BaseServer):
             elif self.__serverStatus == Server.ServerStatus.STOPPING:
                 if msg == ('got-result',):
                     self.__currentPlayers[client]['status'] = Server.ClientStatus.FINISHED
+                    print("before if")
                     if self.__all_finished():
-                        self.__serverStatus == Server.ServerStatus.STOPPED
+                        self.__serverStatus = Server.ServerStatus.STOPPED
+                        print("in if")
                 else:
                     print(f"Received bad message {msg} in STOPPING phase")
 
@@ -376,7 +378,7 @@ class Server(BaseServer):
                 self.broadcast_message(('game-stopped', reason, data))  
             else:
                 self.broadcast_message(('game-stopped', reason, data))  
-                self.__serverStatus == Server.ServerStatus.STOPPED
+                self.__serverStatus = Server.ServerStatus.STOPPED
 
     #*********************************************************************#
     #              Internal Functions for condition checking              #
