@@ -362,18 +362,21 @@ class Server(BaseServer):
         data: any
             the data to include in the message
         """
-        if self.__serverStatus != Server.ServerStatus.STOPPING:
-            self.__serverStatus = Server.ServerStatus.STOPPING
+        if self.__serverStatus != Server.ServerStatus.STOPPED:
             if reason == "winner":
+                self.__serverStatus = Server.ServerStatus.STOPPING
                 # in this case, data == client socket that won
                 self.__broadcast_gamestate("new")
                 self.exclusive_broadcast([data], 
                                          ("game-stopped", "lost", 
                                           self.__currentPlayers[data]['uname']))
                 self.tx_message(data, ("game-stopped", "won", "CONGRATS!"))
-                
+            elif reason == 'draw':
+                self.__serverStatus = Server.ServerStatus.STOPPING
+                self.broadcast_message(('game-stopped', reason, data))  
             else:
                 self.broadcast_message(('game-stopped', reason, data))  
+                self.__serverStatus == Server.ServerStatus.STOPPED
 
     #*********************************************************************#
     #              Internal Functions for condition checking              #
