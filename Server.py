@@ -156,7 +156,8 @@ class Server(BaseServer):
 
             elif self.__serverStatus == Server.ServerStatus.STOPPING:
                 if msg == ('got-result',):
-                    self.__currentPlayers[client]['status'] = Server.ClientStatus.FINISHED
+                    self.__currentPlayers[client]['status'] = \
+                                                Server.ClientStatus.FINISHED
                     if self.__all_finished():
                         self.__serverStatus = Server.ServerStatus.STOPPED
                 elif msg == ("quitting",):
