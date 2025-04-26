@@ -200,11 +200,12 @@ class Server(BaseServer):
                                  self.__currentPlayers[client]['uname'])
             case ("done-moving",):
                 self.__currentPlayers[client]['animating'] = False
-                (gameOver, winnerId) = self.__state.game_over()
-                if gameOver:
-                    self.__terminate_game(winnerId)
-                else:
-                    self.__flip_if_able()
+                if not self.__any_animating():
+                    (gameOver, winnerId) = self.__state.game_over()
+                    if gameOver:
+                        self.__terminate_game(winnerId)
+                    else:
+                        self.__flip_if_able()
 
      
     def __handle_play(self, client, playAction):
@@ -233,7 +234,8 @@ class Server(BaseServer):
                 self.tx_message(client, ("move", "me", playAction.layoutIdx, 
                                          "mid", playAction.midPileIdx))
                 self.__broadcast_gamestate("new")
-                self.__currentPlayers[client]['animating'] = True
+                # self.__currentPlayers[client]['animating'] = True
+                self.__make_all_animating()
             else:
                 # Otherwise we tell the client they made a bad move
                 self.tx_message(client, 
