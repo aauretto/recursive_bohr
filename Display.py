@@ -331,7 +331,8 @@ class Display():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    self.__status.update_status(Display.DisplayStatusValue.STOPPING)
+                    self.__status.update_status(
+                        Display.DisplayStatusValue.STOPPING)
                     self.__msgQueue.put(("quitting",))
                     return
             pygame.display.flip()
@@ -368,17 +369,23 @@ class Display():
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     # Check if selecting one of our cards
                     for i, (_, card_rect) in enumerate(self.__cardObjs["me"]):
-                        if card_rect.collidepoint(event.pos) and selectable[i]:  # Check if mouse is on one of our cards
+                        # Check if mouse is on one of our cards
+                        if card_rect.collidepoint(event.pos) and \
+                            selectable[i]:  
                             selected = True
                             selectedIdx = i
                             break
 
                     if selected:
                         # Check if we are trying to place a card
-                        for i, (card, card_rect) in enumerate(self.__cardObjs["mid"]):
-                            if card_rect.collidepoint(event.pos):  # Check if mouse is on one of our cards
+                        for i, (card, card_rect) in \
+                            enumerate(self.__cardObjs["mid"]):
+                            # Check if mouse is on one of our cards
+                            if card_rect.collidepoint(event.pos): 
                                 selected = False
-                                self.__msgQueue.put(('play', PlayCardAction(selectedIdx, i)))
+                                self.__msgQueue.put(('play', 
+                                                     PlayCardAction(
+                                                         selectedIdx, i)))
 
                                 break
                             
@@ -403,7 +410,8 @@ class Display():
         image.set_alpha(128)
 
         # Scale and center the image
-        image = pygame.transform.scale(image, (self.__width // 2, self.__height // 2))
+        image = pygame.transform.scale(image, 
+                                       (self.__width // 2, self.__height // 2))
         rect  = image.get_rect(center = (self.__width // 2, self.__height // 2))
 
         # Put the image on the screen
@@ -464,7 +472,8 @@ class Display():
     
     def __update_layouts(self):
         # Make and place the cards on the screen
-        myLayout, theirLayout, midPiles, selectable, myCardsLeft, theirCardsLeft = self.__gameState.get_state()
+        myLayout, theirLayout, midPiles, selectable, myCardsLeft, \
+            theirCardsLeft = self.__gameState.get_state()
 
         self.__pile_xpos() # update sizes of each set of piles
 
@@ -483,11 +492,15 @@ class Display():
         Updates the horizontal positions of the cards based on the current
         shape of the game
         """
-        self.__nMyPiles, self.__nTheirPiles, self.__nMidPiles = self.__gameState.shape()
+        self.__nMyPiles, self.__nTheirPiles, self.__nMidPiles = \
+            self.__gameState.shape()
         self.__xpos = {
-                   "them" : [i * (self.__width // (self.__nTheirPiles + 1)) for i in range(1, self.__nTheirPiles + 1)],
-                   "me"   : [i * (self.__width // (self.__nMyPiles + 1))    for i in range(1, self.__nMyPiles + 1)],
-                   "mid"  : [i * (self.__width // (self.__nMidPiles + 1))   for i in range(1, self.__nMidPiles + 1)],
+                   "them" : [i * (self.__width // (self.__nTheirPiles + 1)) 
+                             for i in range(1, self.__nTheirPiles + 1)],
+                   "me"   : [i * (self.__width // (self.__nMyPiles + 1))    
+                             for i in range(1, self.__nMyPiles + 1)],
+                   "mid"  : [i * (self.__width // (self.__nMidPiles + 1))   
+                             for i in range(1, self.__nMidPiles + 1)],
                }
 
     def __show_cards(self, num, height):
@@ -499,14 +512,17 @@ class Display():
         num: int
             The number of cards remaining
         height: int
-            The distance in pixels the center of the text will appear from the top of the screen
+            The distance in pixels the center of the text will appear from the 
+            top of the screen
         """
         # Set up font
 
-        font = pygame.font.SysFont(None, FONT_SIZE)  # None = default font, 72 = size
+        font = pygame.font.SysFont(None, FONT_SIZE)  
+        # None = default font, 72 = size
 
         # Get rect to center it
-        text_surface = font.render(f"Cards Remaining: {num}", True, (0, 0, 0))  # True = anti-aliasing
+        # True = anti-aliasing
+        text_surface = font.render(f"Cards Remaining: {num}", True, (0, 0, 0))  
         text_rect = text_surface.get_rect(center=(self.__width // 2, height))
         self.__screen.blit(text_surface, text_rect)
 
@@ -545,9 +561,15 @@ class Display():
         width : int
             The border width
         """
-        surf = pygame.Surface((rect.w + rect_add, rect.h + rect_add), pygame.SRCALPHA)
-        hl_rect = pygame.draw.rect(surf, color, (0, 0, rect.width + rect_add, rect.height + rect_add), width = width)  # Transparent center
-        hl_rect.center = (rect.center[0] + cntr_offset, rect.center[1] + cntr_offset)
+        surf = pygame.Surface((rect.w + rect_add, rect.h + rect_add), 
+                              pygame.SRCALPHA)  
+        # Transparent center
+        hl_rect = pygame.draw.rect(surf, color, 
+                                   (0, 0, rect.width + rect_add, 
+                                    rect.height + rect_add), 
+                                   width = width)
+        hl_rect.center = (rect.center[0] + cntr_offset, 
+                          rect.center[1] + cntr_offset)
         return surf, hl_rect
 
     #*********************************************************************#
@@ -580,7 +602,8 @@ class Display():
         img = pygame.transform.scale(img, (szW * 2, szH * 2))
 
         # Create the flip animation and register it
-        flipAnimation = Animations.GrowAndFadeAnimation(self.__screen, middle, img, 1)
+        flipAnimation = Animations.GrowAndFadeAnimation(self.__screen, middle, 
+                                                        img, 1)
         self.__animationManager.register_job(flipAnimation, "splashes")
 
         # Loop through the cards (and their locations) that are being flipped
@@ -650,11 +673,15 @@ class Display():
 
         cardToMove, _ = self.__cardObjs[src][srcPile]
         cardToCover, _ = self.__cardObjs[dest][destPile]
-        holdJob = Animations.ShowImage(self.__screen, cardToCover, (destXpos, destYpos))
-        moveJob = Animations.LinearMove((srcXpos, srcYpos), (destXpos, destYpos), duration, self.__screen, cardToMove)
+        holdJob = Animations.ShowImage(self.__screen, cardToCover, (destXpos, 
+                                                                    destYpos))
+        moveJob = Animations.LinearMove((srcXpos, srcYpos), 
+                                        (destXpos, destYpos), duration, 
+                                        self.__screen, cardToMove)
         moveJob.add_dependent(holdJob)
         self.__animationManager.register_job(moveJob, "dynamic")
-        self.__animationManager.register_job(holdJob, "static", TopicOrder.BEFORE)
+        self.__animationManager.register_job(holdJob, "static", 
+                                             TopicOrder.BEFORE)
 
     def bad_move(self, pileIdx):
         """
@@ -672,7 +699,8 @@ class Display():
         # Show image below the mid-pile we tried to play on
         xpos = self.__xpos["mid"][pileIdx]
         ypos = self.__vpos["mid"] + 100
-        showX = Animations.ShowImage(self.__screen, img, (xpos,ypos), duration=0.5)
+        showX = Animations.ShowImage(self.__screen, img, (xpos,ypos), 
+                                     duration=0.5)
         self.__animationManager.register_job(showX, "static")
     
     #*********************************************************************#

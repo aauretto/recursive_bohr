@@ -76,7 +76,8 @@ class LenAndPayload():
             The data to serialize
         """
         payload = pickle.dumps(data)
-        return len(payload).to_bytes(self.__headerLen, byteorder='big') + payload
+        return len(payload).to_bytes(self.__headerLen, byteorder='big') + \
+            payload
 
     def __consume_msg(self, sock):
         """

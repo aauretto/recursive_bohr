@@ -12,7 +12,8 @@ class ShowImage(BaseJob):
     This animation job puts an image at position pos on the screen until someone
     calls its finish() method
     """
-    def __init__(self, screen, image, pos, startImmediately=True, duration=None):
+    def __init__(self, screen, image, pos, startImmediately=True, 
+                 duration=None):
         """
         Constructor
 
@@ -50,7 +51,8 @@ class LinearMove(BaseJob):
     """
     Moves an image from startPos to endPos over length of time duration
     """
-    def __init__(self, startPos, endPos, duration, screen, img, startImmediately=True):
+    def __init__(self, startPos, endPos, duration, screen, img, 
+                 startImmediately=True):
         """
         Constructor
 
@@ -92,8 +94,10 @@ class LinearMove(BaseJob):
         prog    = min(elapsed / self.__duration, 1) 
 
         # Update pos
-        newX = self.__startPos[0] + (self.__endPos[0] - self.__startPos[0]) * prog
-        newY = self.__startPos[1] + (self.__endPos[1] - self.__startPos[1]) * prog
+        newX = self.__startPos[0] + (self.__endPos[0] - self.__startPos[0]) * \
+            prog
+        newY = self.__startPos[1] + (self.__endPos[1] - self.__startPos[1]) * \
+            prog
 
         # Draw image in new pos
         self.__rect.center = (newX, newY)
@@ -165,7 +169,8 @@ class OverlayAndText(BaseJob):
     Puts a colored overlay on top of the entire screen and then displays some
     text in a given position
     """
-    def __init__(self, screen, bgColor, text, textPos, fontSz = 72, textColor = (0,0,0), startImmediately=True):
+    def __init__(self, screen, bgColor, text, textPos, fontSz = 72, 
+                 textColor=(0,0,0), startImmediately=True):
         """
         Constructor
 
@@ -199,7 +204,8 @@ class OverlayAndText(BaseJob):
         font = pygame.font.SysFont(None, fontSz)
         
         # Get rect to center it
-        self.__textSurf = font.render(text, True, textColor)  # True = anti-aliasing
+        # True = anti-aliasing
+        self.__textSurf = font.render(text, True, textColor)
         self.__textRect = self.__textSurf.get_rect(center=(textXpos, textYpos))
 
 

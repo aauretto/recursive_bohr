@@ -75,7 +75,7 @@ Animations.py:
 
     Rules Summary
     -------------
-    Each player has their own deck and begins by placing the top four cards from 
+    Each player has their own deck and begins by placing the top four cards from
     their deck face up in front of them in a row. This is called their layout
     and is on the bottom of the window for each client. The opponent's layouy is
     shown on top of the client window.
@@ -91,7 +91,7 @@ Animations.py:
     the top of the pile. The card's suit does not matter, and an ace can be 
     played high or low.
 
-    If no players can make valid plays, they simultaneously flip the top card of 
+    If no players can make valid plays, they simultaneously flip the top card of
     their decks onto their respective face up piles and continue play. This is 
     handled automatically by the game.
 

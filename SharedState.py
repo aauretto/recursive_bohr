@@ -21,7 +21,8 @@ class ClientStatePackage():
     about the relevant game objects
     """     
     
-    def __init__(self, myLayout, theirLayout, midPiles, myDeckSize, theirDeckSize): 
+    def __init__(self, myLayout, theirLayout, midPiles, myDeckSize, 
+                 theirDeckSize): 
         """
         Constructor for the ClientStatePackage object
 
@@ -125,7 +126,8 @@ class ClientState():
             myDeckSize = self.__gameState.myDeckSize
             theirDeckSize = self.__gameState.theirDeckSize
 
-        return myLayout, theirLayout, midPiles, [c != None for c in myLayout], myDeckSize, theirDeckSize
+        return myLayout, theirLayout, midPiles, \
+               [c != None for c in myLayout], myDeckSize, theirDeckSize
         
 
     def shape(self):

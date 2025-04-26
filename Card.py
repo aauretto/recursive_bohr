@@ -32,7 +32,8 @@ class Card:
         "Q" : 12, 
         "K" : 13
     }
-    __rankString = ["a", "2", "3", "4", "5", "6", "7", "8", "9", "10", "j", "q", "k"]
+    __rankString = \
+        ["a", "2", "3", "4", "5", "6", "7", "8", "9", "10", "j", "q", "k"]
     __suitString = {Suit.SPADES   : "s", 
                     Suit.CLUBS    : "c", 
                     Suit.HEARTS   : "h", 
@@ -90,7 +91,8 @@ class Card:
          : str
              a string representation of the card
          """
-        return self.__rankString[self.__rank - 1] + "_" + self.__suitString[self.__suit]
+        return self.__rankString[self.__rank - 1] + "_" + \
+            self.__suitString[self.__suit]
     
     @staticmethod
     def are_adjacent(card1, card2):

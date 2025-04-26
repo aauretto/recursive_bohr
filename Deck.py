@@ -16,7 +16,8 @@ class Deck():
         self.__theDeck = []
 
         # create deck of 52 standard cards:
-        for s in (Card.Suit.SPADES, Card.Suit.HEARTS, Card.Suit.CLUBS, Card.Suit.DIAMONDS):
+        for s in (Card.Suit.SPADES, Card.Suit.HEARTS, Card.Suit.CLUBS, 
+                  Card.Suit.DIAMONDS):
             for r in range(1, 14):
                 self.__theDeck.append(Card(r, s))
                 

@@ -130,7 +130,8 @@ class Client(BaseClient):
             # Falsey values used as sentinels
             if msg:
                 if not self.tx_message(msg) or msg == ("quitting",):
-                    self.__status.update_status(Client.ClientStatusValue.STOPPING)
+                    self.__status.update_status(
+                        Client.ClientStatusValue.STOPPING)
 
     def __spawn_sender(self):
         """
@@ -166,7 +167,8 @@ class Client(BaseClient):
         """
         Spawns and starts the listener thread
         """
-        self.__listener = threading.Thread(target = self.__listener_worker, args = (serverAddr, port))
+        self.__listener = threading.Thread(target = self.__listener_worker, 
+                                           args = (serverAddr, port))
         self.__listener.start()
 
     #*********************************************************************#
@@ -188,7 +190,8 @@ class Client(BaseClient):
         None
         """
         match msg:
-            # Messages that should be handled the same regardless of client status
+            # Messages that should be handled the same regardless of client 
+            # status
             case ("game-stopped", "player-left", who):
                     self.__stop_game()
                     print(f"{who} left the game. Closing...")
@@ -199,10 +202,12 @@ class Client(BaseClient):
                 if self.__status.get_status() == Client.ClientStatusValue.SETUP:
                     self.__handle_setup_message(msg)
                     
-                elif self.__status.get_status() == Client.ClientStatusValue.READYING:
+                elif self.__status.get_status() == \
+                    Client.ClientStatusValue.READYING:
                     self.__handle_readying_message(msg)
 
-                elif self.__status.get_status() == Client.ClientStatusValue.PLAYING:
+                elif self.__status.get_status() == \
+                    Client.ClientStatusValue.PLAYING:
                     self.__handle_playing_message(msg)
 
                 else:
@@ -290,7 +295,8 @@ class Client(BaseClient):
                 self.__state.update_state(csp)
 
             case ("move", srcLayout, srcIdx, destLayout, destIdx): 
-                self.__display.move_card(srcLayout, srcIdx, destLayout, destIdx, 0.5)
+                self.__display.move_card(srcLayout, srcIdx, destLayout, 
+                                         destIdx, 0.5)
 
             case ("flip", cards, pileIdxs): 
                 self.__display.flip_cards(cards, pileIdxs, 1)

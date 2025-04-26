@@ -215,7 +215,7 @@ class ServerGameState:
             return False
         playerCard = self.__players[playerIndex].get_card(layoutIndex)
         return playerCard and Card.are_adjacent(playerCard, 
-                                                  self.__game_piles[centerIndex])
+                                                self.__game_piles[centerIndex])
             
     def get_game_piles(self):
         return self.__game_piles.copy()
@@ -253,12 +253,14 @@ class ServerGameState:
         Returns
         -------
         : tuple(bool, int|None)
-            Tuple signifying whether the game is over and the index of the player
-            that won or none if no player won.
+            Tuple signifying whether the game is over and the index of the 
+            player that won or none if no player won.
         """
         # no moves available AND all decks empty  => DRAW
-        if not self.moves_available() and all([p.cards_left() == 0 for p in self.__players]):
-            counts = [sum(1 for card in player.get_layout() if card is not None) for player in self.__players]
+        if not self.moves_available() and \
+            all([p.cards_left() == 0 for p in self.__players]):
+            counts = [sum(1 for card in player.get_layout() 
+                          if card is not None) for player in self.__players]
             if len(set(counts)) == 1:
                 return (True, None)
             else:
@@ -266,7 +268,8 @@ class ServerGameState:
         else:
             # OR one persons layout is empty AND their deck is empty => WINNER
             for idx, player in enumerate(self.__players): 
-                if all(c is None for c in player.get_layout()) and player.cards_left() == 0:
+                if all(c is None for c in player.get_layout()) and \
+                    player.cards_left() == 0:
                     return (True, idx)
             # Game is not over
             return (False, None)
@@ -290,4 +293,5 @@ class ServerGameState:
             if i != playerIdx:
                 otherPlayerInfo[i] = {'layout'   : player.get_layout(),
                                     'cardsLeft': player.cards_left()}
-        return thisPlayer.get_layout(), thisPlayer.cards_left(), self.__game_piles.copy(), otherPlayerInfo
+        return thisPlayer.get_layout(), thisPlayer.cards_left(), \
+               self.__game_piles.copy(), otherPlayerInfo

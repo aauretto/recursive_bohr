@@ -76,7 +76,8 @@ class Server(BaseServer):
         # When we're done with SETUP, keep going if we are RUNNING
         if self.__serverStatus == Server.ServerStatus.RUNNING:
             for client in self.__currentPlayers.keys():
-                self.__currentPlayers[client]['status'] = Server.ClientStatus.PLAYING
+                self.__currentPlayers[client]['status'] = \
+                    Server.ClientStatus.PLAYING
             
             # Give everyone the initial gamestate
             self.__broadcast_gamestate('initial')   
@@ -112,7 +113,9 @@ class Server(BaseServer):
         if not self.__any_animating() and not self.__state.moves_available():
             
             playersFlipped = self.__state.flip()
-            cardsToFlip = [c for (i, c) in enumerate(self.__state.get_game_piles()) if i in playersFlipped]
+            cardsToFlip = [c for (i, c) in 
+                           enumerate(self.__state.get_game_piles()) 
+                           if i in playersFlipped]
 
             self.broadcast_message(("flip", cardsToFlip, playersFlipped))
             self.__broadcast_gamestate("new")
@@ -167,11 +170,13 @@ class Server(BaseServer):
                 if self.__all_named():
                     self.broadcast_message(("all-names", self.__player_names()))
             case ("ready",):
-                self.__currentPlayers[client]['status'] = Server.ClientStatus.READY
+                self.__currentPlayers[client]['status'] = \
+                    Server.ClientStatus.READY
                 if self.__all_ready():
                     self.__serverStatus = Server.ServerStatus.RUNNING
             case ("quitting",):
-                self.__stop_game("player-left", self.__currentPlayers[client]['uname'])
+                self.__stop_game("player-left", 
+                                 self.__currentPlayers[client]['uname'])
             case _:
                 print(f"Received bad message {msg} in SETUP phase")
         
@@ -191,7 +196,8 @@ class Server(BaseServer):
             case ("play", playAction):    
                 self.__handle_play(client, playAction)
             case ("quitting",):
-                self.__stop_game("player-left", self.__currentPlayers[client]['uname'])
+                self.__stop_game("player-left", 
+                                 self.__currentPlayers[client]['uname'])
             case ("done-moving",):
                 self.__currentPlayers[client]['animating'] = False
                 (gameOver, winnerId) = self.__state.game_over()
@@ -220,8 +226,12 @@ class Server(BaseServer):
             
             # If the move is allowed we send the new gamestate back to everyone
             if validMove:
-                self.exclusive_broadcast([client], ("move", "them", playAction.layoutIdx, "mid", playAction.midPileIdx))
-                self.tx_message(client, ("move", "me", playAction.layoutIdx, "mid", playAction.midPileIdx))
+                self.exclusive_broadcast([client], ("move", "them", 
+                                                    playAction.layoutIdx, 
+                                                    "mid", 
+                                                    playAction.midPileIdx))
+                self.tx_message(client, ("move", "me", playAction.layoutIdx, 
+                                         "mid", playAction.midPileIdx))
                 self.__broadcast_gamestate("new")
                 self.__currentPlayers[client]['animating'] = True
             else:
@@ -241,10 +251,11 @@ class Server(BaseServer):
             else:
                 # Otherwise accept the new connections and initialize them
                 [newClient] = self.accept_connections()
-                self.__currentPlayers[newClient] = {'id': len(self.__currentPlayers),
-                                                'status': Server.ClientStatus.CONNECTED,
-                                                'uname' : None,
-                                                'animating': True}
+                self.__currentPlayers[newClient] \
+                    = {'id': len(self.__currentPlayers),
+                       'status': Server.ClientStatus.CONNECTED,
+                       'uname' : None,
+                       'animating': True}
                 self.tx_message(newClient, ("ip-info", get_ip()))
                 self.tx_message(newClient, ('name-request',))
         
@@ -289,12 +300,18 @@ class Server(BaseServer):
         ClientStatePackage for the given client
         """
         clientIdx = self.__currentPlayers[client]['id']
-        playerLayout, myDeckSize, midPiles, opponentInfo = self.__state.get_player_info(clientIdx)
+        playerLayout, myDeckSize, midPiles, opponentInfo = \
+            self.__state.get_player_info(clientIdx)
 
-        otherPlayerIdx = [subdict['id'] for subdict in self.__currentPlayers.values() if subdict.get('id') != clientIdx][0] # There will only be one in a two player game
+        otherPlayerIdx = \
+            [subdict['id'] for subdict in self.__currentPlayers.values() 
+             if subdict.get('id') != clientIdx][0] 
+        # Note: There will only be one other player in a two player game
+
         oppLayout = opponentInfo[otherPlayerIdx]['layout']
         theirDeckSize = opponentInfo[otherPlayerIdx]['cardsLeft']
-        return ClientStatePackage(playerLayout, oppLayout, midPiles, myDeckSize, theirDeckSize)
+        return ClientStatePackage(playerLayout, oppLayout, midPiles, 
+                                  myDeckSize, theirDeckSize)
     
     #*********************************************************************#
     #        Internal functions for gracefully ending the game            #
@@ -336,7 +353,9 @@ class Server(BaseServer):
             if reason == "winner":
                 # in this case, data == client socket that won
                 self.__broadcast_gamestate("new")
-                self.exclusive_broadcast([data], ("game-stopped", "lost", self.__currentPlayers[data]['uname']))
+                self.exclusive_broadcast([data], 
+                                         ("game-stopped", "lost", 
+                                          self.__currentPlayers[data]['uname']))
                 self.tx_message(data, ("game-stopped", "won", "CONGRATS!"))
             else:
                 self.broadcast_message(('game-stopped', reason, data))  
@@ -361,7 +380,9 @@ class Server(BaseServer):
         : bool
             An indicator if enough players have the READY status
         """
-        return all(map(lambda a : a["status"] == Server.ClientStatus.READY, self.__currentPlayers.values())) and self.__enough_joined()
+        return all(map(lambda a : a["status"] == Server.ClientStatus.READY, 
+                       self.__currentPlayers.values())) and \
+                        self.__enough_joined()
     
     def __all_named(self):
         """
@@ -370,7 +391,9 @@ class Server(BaseServer):
         : bool
             An indicator if every player has a user name      
         """
-        return all(map(lambda x: x['uname'] != None, self.__currentPlayers.values())) and self.__enough_joined()
+        return all(map(lambda x: x['uname'] != None, 
+                       self.__currentPlayers.values())) and \
+                        self.__enough_joined()
     
     def __any_animating(self):
         """

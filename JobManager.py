@@ -100,7 +100,8 @@ class JobWithTrigger(BaseJob):
     Bundles together a job and some predicate. Will call action() when predicate
     returns true.
     """
-    def __init__(self, job, trigger, action, startImmediately=True, triggerOnce=False):
+    def __init__(self, job, trigger, action, startImmediately=True, 
+                 triggerOnce=False):
         """
         Constructor
 
