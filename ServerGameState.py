@@ -1,3 +1,17 @@
+"""
+File: ServerGameState.py
+Authors: Aiden Auretto, Peter Scully, Simon Webber, Claire Williams
+Date: 4/28/2025
+
+Purpose
+------- 
+    This file contains the Player class, which contains the data 
+    about the player and operations to change its state. This file
+    also contains the ServerGameState class, which contains the 
+    state of the game from the server side and operations to 
+    modify it. 
+"""
+
 from Card import Card
 from Deck import Deck
 

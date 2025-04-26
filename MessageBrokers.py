@@ -1,12 +1,15 @@
-# MessageBrokers.py
-# Class: CS-21
-# Author: recursive_bohr
-# Purpose:
-#     Classes that define an over-the-wire format for messages to be sent.
-#     Classes in this file should provide the static methods:
-#      tx(socket, message) -- Serializes and sends message over socket
-#      rx(socket)          -- Receives messa-ge or group of messages from socket
+"""
+File: MessageBroker.py
+Authors: Aiden Auretto, Peter Scully, Simon Webber, Claire Williams
+Date: 4/28/2025
 
+Purpose
+------- 
+    Classes that define an over-the-wire format for messages to be sent.
+    Classes in this file should provide the static methods:
+      tx(socket, message) -- Serializes and sends message over socket
+      rx(socket)          -- Receives messa-ge or group of messages from socket
+"""
 
 #================================ LenAndPayload ==============================#
 # Format that prepends an int defining the length of the message to the 
@@ -26,7 +29,7 @@ class LenAndPayload():
             the number of bytes used to encode the length of the payload
             of a message
         """
-        self.__headerLen = 4
+        self.__headerLen = headerLen
 
     def tx(self, sock, msg):
         """

@@ -1,8 +1,15 @@
-# IPCutils.py
-# Class: CS-21
-# Author: recursive_bohr
-# Purpose: 
-#   This file contains definitions for Inter-Process Communication utilities.
+"""
+File: IPCutils.py
+Authors: Aiden Auretto, Peter Scully, Simon Webber, Claire Williams
+Date: 4/28/2025
+
+Purpose
+------- 
+    This file contains definitions for Inter-Process Communication utilities.
+    Namely, it defines a base server and a base client modeled after the Erlang
+    gen-server which provide simple server-client interactions over TCP sockets.
+"""
+
 
 import socket
 import select

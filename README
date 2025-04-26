@@ -74,14 +74,14 @@ Animations.py:
 3) For each client that will play the game, run `python Client.py`.
    This program will ask for the ip and port from step (2) as well as a name
    for the player that is playing from that client (Jeremy perhaps).
-4) Once both clients are connected, the game should start autonatically.
+4) Once both clients are connected, the game starts autonatically.
 
     Rules Summary
     -------------
     Each player has their own deck and begins by placing the top four cards from
     their deck face up in front of them in a row. This is called their layout
-    and is on the bottom of the window for each client. The opponent's layouy is
-    shown on top of the client window.
+    and is on the bottom of the window for each client. The opponent's layout is
+    shown on top of the client window. (Done automatically by the server)
 
     There are two piles in the middle of the screen that are shared among both 
     players.

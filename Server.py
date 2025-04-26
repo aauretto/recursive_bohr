@@ -1,3 +1,14 @@
+"""
+File: Server.py
+Authors: Aiden Auretto, Peter Scully, Simon Webber, Claire Williams
+Date: 4/28/2025
+
+Purpose
+------- 
+    This file contains the code for the main Server class. Running
+    Server.py will start the server and display the user's IP and port.
+"""
+
 from IPCutils import *
 from ServerGameState import *
 from enum import Enum

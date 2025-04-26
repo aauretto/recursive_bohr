@@ -1,3 +1,13 @@
+"""
+File: Client.py
+Authors: Aiden Auretto, Peter Scully, Simon Webber, Claire Williams
+Date: 4/28/2025
+
+Purpose
+------- 
+    Contains the main for Client side code and the Client class which
+    drives the Client code
+"""
 from IPCutils import *
 from SharedState import ClientState
 import threading

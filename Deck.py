@@ -1,3 +1,12 @@
+"""
+File: Deck.py
+Authors: Aiden Auretto, Peter Scully, Simon Webber, Claire Williams
+Date: 4/28/2025
+
+Purpose
+------- 
+    Contains the definition for a standard 52 card deck and associated funcitons
+"""
 from Card import Card
 import random
 

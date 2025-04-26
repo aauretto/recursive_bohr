@@ -1,5 +1,16 @@
-import time
+"""
+File: Animation.py
+Authors: Aiden Auretto, Peter Scully, Simon Webber, Claire Williams
+Date: 4/28/2025
 
+Purpose
+------- 
+    Definitions for animation classes used in Display to draw animations on the
+    screen at runtime. All of the classes in this file extend JobManager.BaseJob
+    and are meant to be registered to a JobManager.
+"""
+
+import time
 import pygame
 from JobManager import BaseJob, JobWithTrigger
 

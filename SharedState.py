@@ -1,3 +1,13 @@
+"""
+File: SharedState.py
+Authors: Aiden Auretto, Peter Scully, Simon Webber, Claire Williams
+Date: 4/28/2025
+
+Purpose
+------- 
+    This file is a wrapper to cleanly export a number of classes that
+    are shared between other different classes throughout the program.
+"""
 import threading
 
 class PlayCardAction():

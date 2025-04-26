@@ -1,4 +1,13 @@
-import time
+"""
+Display.py
+Authors: Aiden Auretto, Peter Scully, Simon Webber, Claire Williams
+Date: 4/28/2025
+
+Purpose
+------- 
+    Drives the display and associated logic for said display and client
+    interaction with that display
+"""
 import pygame 
 from SharedState import ClientState, PlayCardAction
 import math

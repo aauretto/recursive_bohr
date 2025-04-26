@@ -1,7 +1,18 @@
+"""
+File: JobManager.py
+Authors: Aiden Auretto, Peter Scully, Simon Webber, Claire Williams
+Date: 4/28/2025
+
+Purpose
+------- 
+    Definition for a job (BaseJob) that represents a task that has discrete 
+    steps as well as a JobManager that can take multiple jobs and interleave
+    the steps for each job so that all jobs advance in lockstep.
+"""
+
 import threading
 from enum import Enum
 from abc import ABC, abstractmethod
-
 
 #==============================================================================#
 #                         Abstract base class for jobs                         #

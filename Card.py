@@ -1,4 +1,12 @@
-# File containing the definition for a card
+"""
+File: Card.py
+Authors: Aiden Auretto, Peter Scully, Simon Webber, Claire Williams
+Date: 4/28/2025
+
+Purpose
+------- 
+    Contains the definition for a Card that comes from a standard 52 card deck
+"""
 from enum import Enum
 
 class Card:
