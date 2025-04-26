@@ -16,15 +16,12 @@ class Deck():
         self.__theDeck = []
 
         # create deck of 52 standard cards:
-        # for s in (Card.Suit.SPADES, Card.Suit.HEARTS, Card.Suit.CLUBS, 
-        #           Card.Suit.DIAMONDS):
-        #     for r in range(1, 14):
-        #         self.__theDeck.append(Card(r, s))
-        self.__theDeck.append(Card(1, Card.Suit.SPADES))
-        self.__theDeck.append(Card(2, Card.Suit.SPADES))
-        self.__theDeck.append(Card(3, Card.Suit.SPADES))
-        self.__theDeck.append(Card(4, Card.Suit.SPADES))
-        self.__theDeck.append(Card(5, Card.Suit.SPADES))
+        for s in (Card.Suit.SPADES, Card.Suit.HEARTS, Card.Suit.CLUBS, 
+                  Card.Suit.DIAMONDS):
+            for r in range(1, 14):
+                self.__theDeck.append(Card(r, s))
+
+
     def shuffle(self):
         """
          Shuffles the order of the deck
