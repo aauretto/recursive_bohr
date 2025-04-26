@@ -72,7 +72,7 @@ class Server(BaseServer):
             try:
                 self.rx_message()
             except KeyboardInterrupt:
-                print("Server stopped with Keyboard")
+                print("Server stopping with KeyboardInterrupt")
                 self.__stop_game("server-killed")
 
         # When we're done with SETUP, keep going if we are RUNNING
@@ -95,7 +95,7 @@ class Server(BaseServer):
             try:
                 self.rx_message()
             except KeyboardInterrupt:
-                print("Server stopped with Keyboard")
+                print("Server stopping with KeyboardInterrupt")
                 self.__stop_game("server-killed")
                 
     #*********************************************************************#
@@ -148,7 +148,6 @@ class Server(BaseServer):
                 The message recieved from the client
 
             """
-            print(f"Server recieved message {msg} from client {self.__currentPlayers[client]['id']}")
             if self.__serverStatus == Server.ServerStatus.SETUP:
                 self.__handle_setup_message(client, msg)
         
@@ -158,10 +157,11 @@ class Server(BaseServer):
             elif self.__serverStatus == Server.ServerStatus.STOPPING:
                 if msg == ('got-result',):
                     self.__currentPlayers[client]['status'] = Server.ClientStatus.FINISHED
-                    print("before if")
                     if self.__all_finished():
                         self.__serverStatus = Server.ServerStatus.STOPPED
-                        print("in if")
+                elif msg == ("quitting",):
+                    self.__stop_game("player-left", 
+                                    self.__currentPlayers[client]['uname'])
                 else:
                     print(f"Received bad message {msg} in STOPPING phase")
 

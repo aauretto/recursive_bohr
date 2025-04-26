@@ -132,7 +132,6 @@ class BaseServer(ABC):
             The message to send to the client
         """
         try:
-            print(f"Server sending msg {msg} to client {client.getpeername()[0]}")
             self._msgBroker.tx(client, msg)
             return True
         except:

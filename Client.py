@@ -128,7 +128,6 @@ class Client(BaseClient):
         while self.__status.get_status() != Client.ClientStatusValue.STOPPING:
             msg = self.__msgQueue.get(block=True)
             # Falsey values used as sentinels
-            print(f"client sending {msg} to server")
             if msg:
                 if not self.tx_message(msg) or msg == ("quitting",):
                     self.__status.update_status(
@@ -190,7 +189,6 @@ class Client(BaseClient):
         -------
         None
         """
-        print(f"Client recieved message {msg} in state {self.__status.get_status()}")
         match msg:
             # Messages that should be handled the same regardless of client 
             # status
@@ -213,7 +211,7 @@ class Client(BaseClient):
                     self.__handle_playing_message(msg)
 
                 else:
-                    print(f"Print in bad Client state while receiving {msg}")
+                    print(f"In bad Client state while receiving {msg}")
 
     def __handle_setup_message(self, msg):
         """
@@ -300,7 +298,7 @@ class Client(BaseClient):
                 self.__display.bad_move(pileIdx)
 
             case _:
-                print(f"Unable to parse message: {msg} while PLAYING")
+                print(f"Received bad message {msg} in PLAYING phase")
              
 
     #*********************************************************************#
