@@ -105,7 +105,6 @@ Notes:
 * Once the game ends, clients can close the window safely. If any client 
   closes the window while the game is running, the game ends immediately 
   for the other client too.
-      
-* [WINDOWS ONLY] Server.py cannot be stopped with a keyboard interrupt by 
-  pressing ^C. The server automatically closes when a client leaves or the game
-  ends.
+
+* If a client has especially high latency, animations will be laggy and may be
+  slightly desynchronized from the actual game state.
