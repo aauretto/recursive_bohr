@@ -14,15 +14,17 @@ class Server(BaseServer):
         """
         CONNECTED = 0
         READY     = 1
-        PLAYING   = 2 
+        PLAYING   = 2
+        FINISHED  = 3
 
     class ServerStatus(Enum):
         """
         Description of the possible status the server can have
         """
-        SETUP   = 0
-        RUNNING = 1
+        SETUP    = 0
+        RUNNING  = 1
         STOPPING = 2
+        STOPPED  = 3
     
     #*********************************************************************#
     #           Constructor and Driver functions for the Server           #
@@ -89,7 +91,7 @@ class Server(BaseServer):
         """
         Runs the game
         """
-        while self.__serverStatus == Server.ServerStatus.RUNNING:
+        while self.__serverStatus != Server.ServerStatus.STOPPED:
             try:
                 self.rx_message()
             except KeyboardInterrupt:
@@ -146,11 +148,20 @@ class Server(BaseServer):
                 The message recieved from the client
 
             """
+            print(f"Server recieved message {msg} from client {self.__currentPlayers[client]['id']}")
             if self.__serverStatus == Server.ServerStatus.SETUP:
                 self.__handle_setup_message(client, msg)
         
             elif self.__serverStatus == Server.ServerStatus.RUNNING:
                 self.__handle_running_message(client, msg)
+
+            elif self.__serverStatus == Server.ServerStatus.STOPPING:
+                if msg == ('got-result',):
+                    self.__currentPlayers[client]['status'] = Server.ClientStatus.FINISHED
+                    if self.__all_finished():
+                        self.__serverStatus == Server.ServerStatus.STOPPED
+                else:
+                    print(f"Received bad message {msg} in STOPPING phase")
 
     def __handle_setup_message(self, client, msg):
         """
@@ -242,6 +253,7 @@ class Server(BaseServer):
                                 ("bad-move", 
                                 playAction.layoutIdx, 
                                 playAction.midPileIdx))
+                self.__currentPlayers[client]['animating'] = True
 
     def handle_connection(self):
             """
@@ -359,6 +371,7 @@ class Server(BaseServer):
                                          ("game-stopped", "lost", 
                                           self.__currentPlayers[data]['uname']))
                 self.tx_message(data, ("game-stopped", "won", "CONGRATS!"))
+                
             else:
                 self.broadcast_message(('game-stopped', reason, data))  
 
@@ -383,6 +396,11 @@ class Server(BaseServer):
             An indicator if enough players have the READY status
         """
         return all(map(lambda a : a["status"] == Server.ClientStatus.READY, 
+                       self.__currentPlayers.values())) and \
+                        self.__enough_joined()
+    
+    def __all_finished(self):
+        return all(map(lambda a : a["status"] == Server.ClientStatus.FINISHED, 
                        self.__currentPlayers.values())) and \
                         self.__enough_joined()
     

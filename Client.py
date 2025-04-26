@@ -128,6 +128,7 @@ class Client(BaseClient):
         while self.__status.get_status() != Client.ClientStatusValue.STOPPING:
             msg = self.__msgQueue.get(block=True)
             # Falsey values used as sentinels
+            print(f"client sending {msg} to server")
             if msg:
                 if not self.tx_message(msg) or msg == ("quitting",):
                     self.__status.update_status(
@@ -189,6 +190,7 @@ class Client(BaseClient):
         -------
         None
         """
+        print(f"Client recieved message {msg} in state {self.__status.get_status()}")
         match msg:
             # Messages that should be handled the same regardless of client 
             # status
@@ -279,16 +281,9 @@ class Client(BaseClient):
         None
         """ 
         match msg:
-            case ("game-stopped", "draw", _):
-                self.__gameResult = "draw"
-                self.__stop_game()
-
-            case ("game-stopped", "won", _):
-                self.__gameResult = "won"
-                self.__stop_game()
-
-            case ("game-stopped", "lost", winner):
-                self.__gameResult = "lost"
+            case ("game-stopped", result, _):
+                self.__gameResult = result
+                self.__msgQueue.put(('got-result',))
                 self.__stop_game()
 
             case ("state", "new", csp): 

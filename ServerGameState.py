@@ -25,7 +25,6 @@ class Player:
         self.__deck = deck
         self.__name = name
         self.__id = id
-        deck.deal(40)
         self.__layout = deck.deal(layoutSize)
 
     def get_layout(self):
